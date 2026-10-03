@@ -1,0 +1,44 @@
+import 'package:flutter/material.dart';
+
+class AuthActionButton extends StatelessWidget {
+  const AuthActionButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+  });
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(20),
+      gradient: const LinearGradient(
+        colors: [Color(0xFF00E900), Color(0xFF00BF00)],
+      ),
+    ),
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(
+        minHeight: 48,
+        minWidth: double.infinity,
+      ),
+      child: TextButton(
+        style: TextButton.styleFrom(
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          textStyle: const TextStyle(fontFamily: 'Arial', fontSize: 20),
+        ),
+        onPressed: onPressed,
+        child: Text(label),
+      ),
+    ),
+  );
+}
+
+void showAuthMessage(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(message)));
+}
