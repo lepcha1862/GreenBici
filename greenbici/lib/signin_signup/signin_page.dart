@@ -15,11 +15,15 @@ class SignInPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const BrandHeader(),
-        const SizedBox(height: 25),
-        const Text('Sign in, unlock your ride, let the city roll'),
-        const SizedBox(height: 16),
+        const SizedBox(height: 40),
+        const Text(
+          'Sign in, unlock your ride,\nlet the city roll.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 23, height: 1.5),
+        ),
+        const SizedBox(height: 54),
         const SignInForm(),
-        const SizedBox(height: 22),
+        const SizedBox(height: 30),
         SocialSignInSection(
           accountPrompt: 'Don’t have an account?',
           linkLabel: 'Sign Up',

@@ -30,7 +30,7 @@ class _SignInFormState extends State<SignInForm> {
           controller: _username,
           autofillHints: const [AutofillHints.username],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 28),
         AuthInput(
           label: 'Password',
           hint: 'Password',
@@ -44,7 +44,7 @@ class _SignInFormState extends State<SignInForm> {
           child: TextButton(
             style: TextButton.styleFrom(
               padding: EdgeInsets.zero,
-              foregroundColor: const Color(0xFFE6E6E6),
+              foregroundColor: const Color(0xFF93BC58),
               textStyle: const TextStyle(fontFamily: 'Arial', fontSize: 16),
             ),
             onPressed: () => showAuthMessage(
@@ -54,7 +54,7 @@ class _SignInFormState extends State<SignInForm> {
             child: const Text('Forgot Password?'),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 32),
         AuthActionButton(
           label: 'Sign In',
           onPressed: () {

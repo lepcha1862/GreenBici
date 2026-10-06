@@ -14,12 +14,14 @@ class AuthActionButton extends StatelessWidget {
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(20),
       gradient: const LinearGradient(
-        colors: [Color(0xFF00E900), Color(0xFF00BF00)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF6EA918), Color(0xFF447909)],
       ),
     ),
     child: ConstrainedBox(
       constraints: const BoxConstraints(
-        minHeight: 48,
+        minHeight: 58,
         minWidth: double.infinity,
       ),
       child: TextButton(
@@ -28,7 +30,7 @@ class AuthActionButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          textStyle: const TextStyle(fontFamily: 'Arial', fontSize: 20),
+          textStyle: const TextStyle(fontFamily: 'Arial', fontSize: 22),
         ),
         onPressed: onPressed,
         child: Text(label),

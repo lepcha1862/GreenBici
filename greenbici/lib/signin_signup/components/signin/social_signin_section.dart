@@ -10,7 +10,9 @@ class SocialSignInSection extends StatelessWidget {
     required this.accountPrompt,
     required this.linkLabel,
     required this.onNavigate,
+    this.signUp = false,
   });
+  final bool signUp;
   final String accountPrompt;
   final String linkLabel;
   final VoidCallback onNavigate;
@@ -18,52 +20,55 @@ class SocialSignInSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      const Row(
+      Row(
         children: [
-          Expanded(child: Divider(color: Color(0xFFDBD3C8))),
+          Expanded(child: Divider(color: Color(0xFF777974))),
           Flexible(
             flex: 3,
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 4),
-              child: Text('Or Sign in with', textAlign: TextAlign.center),
+              child: Text(
+                signUp ? 'or sign up with' : 'or sign in with',
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
-          Expanded(child: Divider(color: Color(0xFFDBD3C8))),
+          Expanded(child: Divider(color: Color(0xFF777974))),
         ],
       ),
-      const SizedBox(height: 14),
+      const SizedBox(height: 26),
       ConstrainedBox(
         constraints: const BoxConstraints(
-          minHeight: 48,
+          minHeight: 62,
           minWidth: double.infinity,
         ),
         child: OutlinedButton(
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             foregroundColor: const Color(0xFFE2E2E2),
-            side: const BorderSide(color: Color(0xFF9A9994)),
+            side: const BorderSide(color: Color(0xFFD5D7D3)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
             ),
           ),
           onPressed: () =>
               showAuthMessage(context, 'Google sign-in is not connected yet.'),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CustomPaint(size: Size(28, 28), painter: _GoogleMarkPainter()),
               SizedBox(width: 9),
               Flexible(
                 child: Text(
-                  'Sign in with Google',
-                  style: TextStyle(fontFamily: 'Arial', fontSize: 16),
+                  signUp ? 'Sign up with Google' : 'Sign in with Google',
+                  style: TextStyle(fontFamily: 'Arial', fontSize: 19),
                 ),
               ),
             ],
           ),
         ),
       ),
-      const SizedBox(height: 9),
+      const SizedBox(height: 24),
       Wrap(
         alignment: WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -76,7 +81,7 @@ class SocialSignInSection extends StatelessWidget {
           TextButton(
             onPressed: onNavigate,
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF0097ED),
+              foregroundColor: const Color(0xFF93BC58),
               padding: const EdgeInsets.only(left: 4),
               minimumSize: const Size(0, 48),
               textStyle: const TextStyle(fontFamily: 'Arial', fontSize: 15),

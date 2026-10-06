@@ -42,6 +42,22 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Password visibility can be toggled without losing input', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MyApp());
+    final password = find.byType(TextField).last;
+    await tester.enterText(password, 'my-secret');
+    await tester.ensureVisible(find.byTooltip('Show password'));
+    await tester.tap(find.byTooltip('Show password'));
+    await tester.pump();
+    expect(tester.widget<TextField>(password).obscureText, isFalse);
+    expect(tester.widget<TextField>(password).controller!.text, 'my-secret');
+    await tester.tap(find.byTooltip('Hide password'));
+    await tester.pump();
+    expect(tester.widget<TextField>(password).obscureText, isTrue);
+  });
+
   testWidgets('Small screens and keyboard keep navigation reachable', (
     tester,
   ) async {

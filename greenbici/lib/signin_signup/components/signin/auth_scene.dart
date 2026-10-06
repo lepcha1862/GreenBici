@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 /// Fluid form layout with a readable width and scrollable intrinsic height.
 class AuthScene extends StatelessWidget {
-  const AuthScene({super.key, required this.child, this.topSpacing = 80});
+  const AuthScene({super.key, required this.child, this.topSpacing = 72});
   final Widget child;
   final double topSpacing;
 
@@ -26,11 +26,11 @@ class AuthScene extends StatelessWidget {
             ),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final horizontalPadding = (constraints.maxWidth * .11).clamp(
+                final horizontalPadding = (constraints.maxWidth * .07).clamp(
                   16.0,
-                  40.0,
+                  28.0,
                 );
-                final verticalScale = (constraints.maxHeight / 676).clamp(
+                final verticalScale = (constraints.maxHeight / 900).clamp(
                   .3,
                   1.0,
                 );
@@ -43,13 +43,13 @@ class AuthScene extends StatelessWidget {
                     ),
                     child: Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 460),
+                        constraints: const BoxConstraints(maxWidth: 480),
                         child: Padding(
                           padding: EdgeInsets.fromLTRB(
                             horizontalPadding,
                             topSpacing * verticalScale,
                             horizontalPadding,
-                            32,
+                            150,
                           ),
                           child: DefaultTextStyle(
                             style: const TextStyle(
@@ -86,26 +86,28 @@ class _CyclingScenePainter extends CustomPainter {
       bounds,
       Paint()
         ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF0C8FF9),
-            Color(0xFF377EC9),
-            Color(0xFF8F829A),
-            Color(0xFFED5A1B),
+            Color(0xFF081F30),
+            Color(0xFF102330),
+            Color(0xFF333332),
+            Color(0xFF674420),
           ],
-          stops: [0, .37, .62, .79],
+          stops: [0, .35, .72, 1],
         ).createShader(bounds),
     );
     canvas.drawRect(
       bounds,
       Paint()
         ..shader = const RadialGradient(
-          center: Alignment(-1, .48),
+          center: Alignment(0, .85),
           radius: .72,
-          colors: [Color(0xFFCDB76B), Color(0x00CDB76B)],
+          colors: [Color(0x224E321A), Color(0x00CDB76B)],
         ).createShader(bounds),
     );
+    canvas.save();
+    canvas.translate(0, 112);
     final ink = Paint()..color = const Color(0xFF080909);
     final ground = Path()..moveTo(0, 482);
     final random = math.Random(19);
@@ -189,6 +191,7 @@ class _CyclingScenePainter extends CustomPainter {
         ..lineTo(170, 439),
       line..strokeWidth = 7,
     );
+    canvas.restore();
     canvas.restore();
     canvas.drawRect(
       bounds,

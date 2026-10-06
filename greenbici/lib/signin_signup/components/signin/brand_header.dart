@@ -11,7 +11,7 @@ class BrandHeader extends StatelessWidget {
     image: true,
     child: ExcludeSemantics(
       child: SizedBox(
-        height: 65,
+        height: 104,
         child: FittedBox(
           fit: BoxFit.contain,
           child: SizedBox(
@@ -29,7 +29,7 @@ class BrandHeader extends StatelessWidget {
                         fontSize: 45,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -2.7,
-                        color: Color(0xFF006C3E),
+                        color: Color(0xFFF5F6F3),
                       ),
                       children: [
                         TextSpan(
@@ -38,7 +38,7 @@ class BrandHeader extends StatelessWidget {
                         ),
                         TextSpan(
                           text: 'Bici',
-                          style: TextStyle(color: Color(0xFF30AA00)),
+                          style: TextStyle(color: Color(0xFF6FA821)),
                         ),
                       ],
                     ),
@@ -70,7 +70,7 @@ class BrandHeader extends StatelessWidget {
                               fontSize: 7,
                               fontWeight: FontWeight.w800,
                               fontStyle: FontStyle.italic,
-                              color: Color(0xFF005F42),
+                              color: Color(0xFF89AD4D),
                             ),
                           ),
                         ),
@@ -93,7 +93,7 @@ class BrandHeader extends StatelessWidget {
 class _LeavesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFF38AF00);
+    final paint = Paint()..color = const Color(0xFF75AA29);
     canvas.drawPath(
       Path()
         ..moveTo(11, 21)
