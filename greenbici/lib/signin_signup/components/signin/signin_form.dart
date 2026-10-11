@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../home/home_page.dart';
+
 import 'auth_action_button.dart';
 import 'auth_input.dart';
 
@@ -58,11 +60,13 @@ class _SignInFormState extends State<SignInForm> {
         AuthActionButton(
           label: 'Sign In',
           onPressed: () {
-            showAuthMessage(
-              context,
-              _username.text.trim().isEmpty || _password.text.isEmpty
-                  ? 'Enter your user name and password.'
-                  : 'Sign-in is not connected to an authentication service yet.',
+            FocusManager.instance.primaryFocus?.unfocus();
+            final name = _username.text.trim();
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    HomePage(displayName: name.isEmpty ? 'Alex' : name),
+              ),
             );
           },
         ),
