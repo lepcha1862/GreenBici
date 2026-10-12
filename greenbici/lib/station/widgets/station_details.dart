@@ -1,0 +1,139 @@
+import 'package:flutter/material.dart';
+
+import '../../theme/app_style.dart';
+import '../models/bicycle_station.dart';
+import '../models/geo_point.dart';
+
+String stationDistance(double meters) => meters < 1000
+    ? '${meters.round()} m away'
+    : '${(meters / 1000).toStringAsFixed(1)} km away';
+
+class StationDetails extends StatelessWidget {
+  const StationDetails({
+    super.key,
+    required this.station,
+    required this.userLocation,
+    required this.onDirections,
+  });
+
+  final BicycleStation station;
+  final GeoPoint userLocation;
+  final VoidCallback onDirections;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const CircleAvatar(
+            radius: 25,
+            backgroundColor: AppStyle.paleGreen,
+            child: Icon(Icons.pedal_bike, size: 30, color: AppStyle.darkGreen),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  station.name,
+                  style: const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w700,
+                    height: 1.15,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  stationDistance(userLocation.distanceTo(station.location)),
+                  style: const TextStyle(color: AppStyle.muted),
+                ),
+                if (station.operatorName != null)
+                  Text(
+                    station.operatorName!,
+                    style: const TextStyle(color: AppStyle.muted),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 18),
+      if (station.bikesAvailable != null || station.docksAvailable != null)
+        Wrap(
+          spacing: 24,
+          runSpacing: 12,
+          children: [
+            _Availability(
+              icon: Icons.pedal_bike,
+              value: station.bikesAvailable,
+              label: 'bikes available',
+            ),
+            _Availability(
+              icon: Icons.local_parking,
+              value: station.docksAvailable,
+              label: 'docks available',
+            ),
+          ],
+        ),
+      if (station.bikesAvailable == null || station.docksAvailable == null) ...[
+        const Text(
+          'Live availability is not provided for this station.',
+          style: TextStyle(fontSize: 12, color: AppStyle.muted),
+        ),
+      ],
+      const SizedBox(height: 16),
+      FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppStyle.green,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        onPressed: onDirections,
+        icon: const Icon(Icons.directions),
+        label: const Text('Get Directions'),
+      ),
+    ],
+  );
+}
+
+class _Availability extends StatelessWidget {
+  const _Availability({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+  final IconData icon;
+  final int? value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, color: AppStyle.green, size: 25),
+      const SizedBox(width: 8),
+      Flexible(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value?.toString() ?? '—',
+              style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w700),
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: AppStyle.muted),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}

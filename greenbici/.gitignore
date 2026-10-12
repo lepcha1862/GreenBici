@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local API keys passed with --dart-define-from-file.
+config/*.local.json
+
+# Pin this application's resolved dependencies despite the root *.lock rule.
+!pubspec.lock

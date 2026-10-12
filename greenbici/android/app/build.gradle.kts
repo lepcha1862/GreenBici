@@ -1,8 +1,22 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Flutter passes --dart-define values as comma-separated base64 entries.
+// Keeping the native SDK and Dart configuration in sync avoids a second key file.
+val dartDefines = providers.gradleProperty("dart-defines").orNull
+    ?.split(",")
+    ?.mapNotNull { entry ->
+        val decoded = String(Base64.getDecoder().decode(entry), Charsets.UTF_8)
+        val separator = decoded.indexOf('=')
+        if (separator < 0) null else decoded.substring(0, separator) to decoded.substring(separator + 1)
+    }
+    ?.toMap()
+    ?: emptyMap()
 
 android {
     namespace = "com.example.greenbici"
@@ -19,7 +33,7 @@ android {
         applicationId = "com.example.greenbici"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -27,6 +41,7 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["googleMapsApiKey"] = dartDefines["GOOGLE_MAPS_API_KEY"]?.trim() ?: ""
     }
 
     buildTypes {

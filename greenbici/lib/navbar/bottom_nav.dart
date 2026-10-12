@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../home_style.dart';
+import '../theme/app_style.dart';
 
-class HomeNavigation extends StatelessWidget {
-  const HomeNavigation({
+class BottomNav extends StatelessWidget {
+  const BottomNav({
     super.key,
     required this.selectedIndex,
     required this.onSelected,
@@ -24,7 +24,7 @@ class HomeNavigation extends StatelessWidget {
   Widget build(BuildContext context) => DecoratedBox(
     decoration: const BoxDecoration(
       color: Colors.white,
-      border: Border(top: BorderSide(color: HomeStyle.border)),
+      border: Border(top: BorderSide(color: AppStyle.border)),
     ),
     child: SafeArea(
       top: false,
@@ -51,7 +51,7 @@ class HomeNavigation extends StatelessWidget {
                     final selected = index == selectedIndex;
                     final item = _items[index];
                     final color = selected
-                        ? HomeStyle.green
+                        ? AppStyle.green
                         : const Color(0xFF808580);
                     return Expanded(
                       child: Semantics(
@@ -74,7 +74,7 @@ class HomeNavigation extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: selected
-                                      ? HomeStyle.paleGreen
+                                      ? AppStyle.paleGreen
                                       : Colors.transparent,
                                   borderRadius: BorderRadius.circular(20),
                                 ),

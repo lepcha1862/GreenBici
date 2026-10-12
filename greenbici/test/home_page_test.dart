@@ -3,7 +3,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:greenbici/home/home_page.dart';
 import 'package:greenbici/home/widgets/hero_slider.dart';
-import 'package:greenbici/home/widgets/home_navigation.dart';
+import 'package:greenbici/navbar/app_shell.dart';
+import 'package:greenbici/navbar/bottom_nav.dart';
+import 'package:greenbici/navbar/top_nav.dart';
 import 'package:greenbici/main.dart';
 import 'package:greenbici/signin_signup/signin_page.dart';
 
@@ -74,13 +76,13 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(r'$2.70'), findsOneWidget);
         expect(tester.takeException(), isNull);
-        expect(find.byType(HomeNavigation).hitTestable(), findsOneWidget);
+        expect(find.byType(BottomNav).hitTestable(), findsOneWidget);
         await _unmount(tester);
       });
     }
   }
 
-  testWidgets('Quick actions and navigation scroll to their home sections', (
+  testWidgets('Quick actions open destinations and preserve Home scroll', (
     tester,
   ) async {
     _configureView(tester, const Size(390, 844));
@@ -89,37 +91,141 @@ void main() {
 
     await tester.ensureVisible(find.text('Find Station'));
     await tester.pumpAndSettle();
+    final homeScroll = tester.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byKey(const PageStorageKey('home-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    final homeOffset = homeScroll.position.pixels;
     await tester.tap(find.text('Find Station'));
     await tester.pumpAndSettle();
-    _expectHeadingInBody(tester, 'Nearby Docking Stations');
-    expect(
-      tester.widget<HomeNavigation>(find.byType(HomeNavigation)).selectedIndex,
-      1,
-    );
+    _expectHeadingInBody(tester, 'Nearby Stations');
+    expect(find.byType(HomePage), findsNothing);
+    expect(tester.widget<BottomNav>(find.byType(BottomNav)).selectedIndex, 1);
 
     await tester.tap(find.byTooltip('Home'));
     await tester.pumpAndSettle();
-    _expectHeadingInBody(tester, 'Good morning, Alex', richText: true);
+    expect(homeScroll.position.pixels, homeOffset);
 
     await tester.ensureVisible(find.text('My Rides'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Rides'));
     await tester.pumpAndSettle();
-    _expectHeadingInBody(tester, 'Top 5 Recent Rides');
-    expect(
-      tester.widget<HomeNavigation>(find.byType(HomeNavigation)).selectedIndex,
-      2,
-    );
+    expect(find.byKey(const ValueKey('rides-placeholder')), findsOneWidget);
+    expect(find.byType(HomePage), findsNothing);
+    expect(tester.widget<BottomNav>(find.byType(BottomNav)).selectedIndex, 2);
 
     await tester.tap(find.byTooltip('Stations'));
     await tester.pumpAndSettle();
-    _expectHeadingInBody(tester, 'Nearby Docking Stations');
-    await tester.tap(find.byTooltip('Rides'));
-    await tester.pumpAndSettle();
-    _expectHeadingInBody(tester, 'Top 5 Recent Rides');
+    _expectHeadingInBody(tester, 'Nearby Stations');
+    for (final destination in ['Rides', 'Notifications', 'Profile']) {
+      await tester.tap(find.byTooltip(destination));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(ValueKey('${destination.toLowerCase()}-placeholder')),
+        findsOneWidget,
+      );
+      expect(find.byType(HomePage), findsNothing);
+      expect(find.byType(TopNav), findsNothing);
+      expect(find.byType(BottomNav).hitTestable(), findsOneWidget);
+    }
     expect(tester.takeException(), isNull);
     await _unmount(tester);
   });
+
+  testWidgets(
+    'Station is created on demand and its state survives tab changes',
+    (tester) async {
+      _configureView(tester, const Size(390, 844));
+      await tester.pumpWidget(_homeApp(reducedMotion: true));
+      await tester.pumpAndSettle();
+      expect(find.byType(_StationStub, skipOffstage: false), findsNothing);
+
+      await tester.tap(find.byTooltip('Search stations'));
+      await tester.pumpAndSettle();
+      _expectHeadingInBody(tester, 'Nearby Stations');
+      await tester.tap(find.text('Select station 0'));
+      await tester.pump();
+      expect(find.text('Select station 1'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Home'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Stations'));
+      await tester.pumpAndSettle();
+      expect(find.text('Select station 1'), findsOneWidget);
+      expect(find.byType(TopNav), findsOneWidget);
+      expect(find.byType(BottomNav), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await _unmount(tester);
+    },
+  );
+
+  testWidgets('Home station View all opens the Station destination', (
+    tester,
+  ) async {
+    _configureView(tester, const Size(390, 844));
+    await tester.pumpWidget(_homeApp(reducedMotion: true));
+    await tester.pumpAndSettle();
+    final stationViewAll = find.text('View all').first;
+    await tester.ensureVisible(stationViewAll);
+    await tester.pumpAndSettle();
+    await tester.tap(stationViewAll);
+    await tester.pumpAndSettle();
+    _expectHeadingInBody(tester, 'Nearby Stations');
+    await _unmount(tester);
+  });
+
+  testWidgets('Home autoplay pauses while another tab is selected', (
+    tester,
+  ) async {
+    _configureView(tester, const Size(660, 700));
+    await tester.pumpWidget(_homeApp());
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+    _expectSlide(tester, 2);
+
+    await tester.tap(find.byTooltip('Rides'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 18));
+    await tester.tap(find.byTooltip('Home'));
+    await tester.pumpAndSettle();
+    _expectSlide(tester, 2);
+    expect(tester.takeException(), isNull);
+    await _unmount(tester);
+  });
+
+  for (final reducedMotion in [false, true]) {
+    testWidgets(
+      'Reselecting Home scrolls to top, reduced motion: $reducedMotion',
+      (tester) async {
+        _configureView(tester, const Size(390, 844));
+        await tester.pumpWidget(_homeApp(reducedMotion: reducedMotion));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Nearby Docking Stations'));
+        await tester.pumpAndSettle();
+        final scroll = tester.state<ScrollableState>(
+          find
+              .descendant(
+                of: find.byKey(const PageStorageKey('home-scroll')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        );
+        expect(scroll.position.pixels, greaterThan(0));
+
+        await tester.tap(find.byTooltip('Home'));
+        await tester.pumpAndSettle();
+        expect(scroll.position.pixels, 0);
+        _expectHeadingInBody(tester, 'Good morning, Alex', richText: true);
+        expect(tester.takeException(), isNull);
+        await _unmount(tester);
+      },
+    );
+  }
 
   testWidgets('Navigation remains readable at intermediate text scales', (
     tester,
@@ -128,7 +234,7 @@ void main() {
     await tester.pumpWidget(_homeApp(reducedMotion: true));
     await tester.pumpAndSettle();
     final labels = find.descendant(
-      of: find.byType(HomeNavigation),
+      of: find.byType(BottomNav),
       matching: find.byType(RichText),
     );
     for (final label in labels.evaluate()) {
@@ -248,7 +354,7 @@ Widget _homeApp({bool reducedMotion = false}) => MaterialApp(
     data: MediaQuery.of(context).copyWith(disableAnimations: reducedMotion),
     child: child!,
   ),
-  home: const HomePage(),
+  home: AppShell(stationBuilder: (_) => const _StationStub()),
 );
 
 Widget _heroApp({bool reducedMotion = false, VoidCallback? onStartRide}) =>
@@ -282,7 +388,7 @@ void _expectHeadingInBody(
   bool richText = false,
 }) {
   final bounds = tester.getRect(find.text(title, findRichText: richText));
-  final navigationTop = tester.getTopLeft(find.byType(HomeNavigation)).dy;
+  final navigationTop = tester.getTopLeft(find.byType(BottomNav)).dy;
   expect(bounds.top, greaterThanOrEqualTo(-1));
   expect(bounds.bottom, lessThan(navigationTop));
 }
@@ -290,4 +396,35 @@ void _expectHeadingInBody(
 Future<void> _unmount(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump();
+}
+
+class _StationStub extends StatefulWidget {
+  const _StationStub();
+
+  @override
+  State<_StationStub> createState() => _StationStubState();
+}
+
+class _StationStubState extends State<_StationStub> {
+  int _selectedStation = 0;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          TopNav(
+            title: 'Nearby Stations',
+            subtitle: 'Current location',
+            onSearch: () {},
+          ),
+          TextButton(
+            onPressed: () => setState(() => _selectedStation++),
+            child: Text('Select station $_selectedStation'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

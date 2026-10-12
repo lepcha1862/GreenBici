@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../home/home_page.dart';
+import '../../../navbar/app_shell.dart';
 
 import 'auth_action_button.dart';
 import 'auth_input.dart';
@@ -65,7 +65,7 @@ class _SignInFormState extends State<SignInForm> {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute<void>(
                 builder: (_) =>
-                    HomePage(displayName: name.isEmpty ? 'Alex' : name),
+                    AppShell(displayName: name.isEmpty ? 'Alex' : name),
               ),
             );
           },
