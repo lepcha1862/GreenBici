@@ -27,7 +27,15 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byTooltip('Search stations'), findsOneWidget);
+        final search = find.byTooltip('Search stations');
+        expect(search, findsOneWidget);
+        if (size.width <= 390) {
+          final pagePadding = size.width < 360 ? 14.0 : 20.0;
+          expect(
+            tester.getRect(search).right,
+            moreOrLessEquals(size.width - pagePadding, epsilon: 1),
+          );
+        }
         final lastCard = find.text('Refer & earn');
         await tester.ensureVisible(lastCard);
         await tester.pumpAndSettle();

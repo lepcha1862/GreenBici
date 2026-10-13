@@ -137,31 +137,31 @@ class _NotificationPageState extends State<NotificationPage> {
     ),
   );
 
-  Widget _header() => Row(
-    crossAxisAlignment: CrossAxisAlignment.end,
-    children: [
-      Expanded(
-        child: TopNav(title: 'Notifications', onSearch: widget.onSearch),
-      ),
-      Container(
-        margin: const EdgeInsets.only(bottom: 28, right: 12),
-        width: 34,
-        height: 34,
-        alignment: Alignment.center,
-        decoration: const BoxDecoration(
-          color: AppStyle.green,
-          shape: BoxShape.circle,
-        ),
-        child: Text(
-          '${demoNotifications.where((item) => item.unread).length}',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
+  Widget _header() => TopNav(
+    title: 'Notifications',
+    onSearch: widget.onSearch,
+    titleTrailing: Semantics(
+      label: '${demoNotifications.where((item) => item.unread).length} unread',
+      child: ExcludeSemantics(
+        child: Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppStyle.green,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            '${demoNotifications.where((item) => item.unread).length}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
           ),
         ),
       ),
-    ],
+    ),
   );
 
   Widget _filters() => LayoutBuilder(

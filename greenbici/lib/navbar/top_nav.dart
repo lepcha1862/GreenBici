@@ -12,6 +12,7 @@ class TopNav extends StatelessWidget {
     this.subtitle,
     this.subtitleIcon = Icons.location_on_rounded,
     this.statusColor,
+    this.titleTrailing,
     this.onSearch,
   });
 
@@ -20,6 +21,7 @@ class TopNav extends StatelessWidget {
   final String? subtitle;
   final IconData subtitleIcon;
   final Color? statusColor;
+  final Widget? titleTrailing;
   final VoidCallback? onSearch;
 
   @override
@@ -48,15 +50,26 @@ class TopNav extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Semantics(
-                  header: true,
-                  child: Text(
-                    title!,
-                    style: const TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w700,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Semantics(
+                        header: true,
+                        child: Text(
+                          title!,
+                          style: const TextStyle(
+                            fontSize: 21,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    if (titleTrailing != null) ...[
+                      const SizedBox(width: 10),
+                      titleTrailing!,
+                    ],
+                  ],
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 4),

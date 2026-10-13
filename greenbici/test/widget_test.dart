@@ -20,6 +20,14 @@ void main() {
         epsilon: 1,
       ),
     );
+    final dividerWidth = tester
+        .getSize(find.byKey(const ValueKey('auth-method-divider')))
+        .width;
+    final primaryButtonWidth = tester
+        .getSize(find.widgetWithText(FilledButton, 'Sign In'))
+        .width;
+    expect(dividerWidth, lessThan(primaryButtonWidth));
+    expect(dividerWidth, greaterThan(primaryButtonWidth * .85));
 
     final signUp = find.widgetWithText(TextButton, 'Sign Up');
     await tester.ensureVisible(signUp);
