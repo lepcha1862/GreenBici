@@ -30,6 +30,17 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
     expect(find.text('50%'), findsOneWidget);
+    final progressFill = tester.widget<DecoratedBox>(
+      find.byKey(const ValueKey('splash-progress-fill')),
+    );
+    final decoration = progressFill.decoration as BoxDecoration;
+    final colors = (decoration.gradient! as LinearGradient).colors;
+    expect(colors, const [
+      Color(0xFF347C3D),
+      Color(0xFF72AD43),
+      Color(0xFF249EBD),
+    ]);
+    expect(colors, isNot(contains(Colors.white)));
 
     loader.complete();
     await tester.pump();

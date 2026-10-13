@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../theme/app_style.dart';
+
 typedef StartupLoader = Future<void> Function(
   BuildContext context,
   ValueChanged<double> reportProgress,
@@ -264,18 +266,32 @@ class _AnimatedLoadingBar extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(999),
               child: Container(
-                height: 10,
-                color: const Color(0x24347C3D),
+                height: 12,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0x3372AD43), Color(0x33249EBD)],
+                  ),
+                  border: Border.all(
+                    color: AppStyle.darkGreen.withValues(alpha: .28),
+                  ),
+                ),
                 alignment: Alignment.centerLeft,
                 child: FractionallySizedBox(
                   widthFactor: safeValue,
                   child: const DecoratedBox(
+                    key: ValueKey('splash-progress-fill'),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF176B4C), Color(0xFF79B841)],
+                        colors: [
+                          AppStyle.darkGreen,
+                          AppStyle.green,
+                          AppStyle.blue,
+                        ],
+                        stops: [0, .55, 1],
                       ),
                       boxShadow: [
-                        BoxShadow(color: Color(0x6679B841), blurRadius: 10),
+                        BoxShadow(color: Color(0x8072AD43), blurRadius: 12),
+                        BoxShadow(color: Color(0x66249EBD), blurRadius: 16),
                       ],
                     ),
                   ),
