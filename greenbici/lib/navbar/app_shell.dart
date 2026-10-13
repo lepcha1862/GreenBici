@@ -77,9 +77,12 @@ class _AppShellState extends State<AppShell> {
           ),
           TickerMode(
             enabled: _selectedIndex == 4,
-            child: ProfilePage(
-              displayName: widget.displayName,
-              onSearch: () => _selectNavigation(1),
+            child: KeyedSubtree(
+              key: const ValueKey('profile-placeholder'),
+              child: ProfilePage(
+                displayName: widget.displayName,
+                onSearch: () => _selectNavigation(1),
+              ),
             ),
           ),
         ],

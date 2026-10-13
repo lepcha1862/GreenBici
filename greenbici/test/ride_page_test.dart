@@ -52,13 +52,16 @@ void main() {
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
-    await _pumpRide(tester);
+    try {
+      await _pumpRide(tester);
 
-    for (final id in _bikeIds) {
-      await tester.ensureVisible(find.byKey(ValueKey('unlock-$id')));
-      await tester.pumpAndSettle();
-      expect(find.bySemanticsLabel('Unlock bike $id'), findsOneWidget);
+      for (final id in _bikeIds) {
+        await tester.ensureVisible(find.byKey(ValueKey('unlock-$id')));
+        await tester.pumpAndSettle();
+        expect(find.bySemanticsLabel('Unlock bike $id'), findsOneWidget);
+      }
+    } finally {
+      semantics.dispose();
     }
   });
 

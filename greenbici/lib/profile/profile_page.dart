@@ -47,51 +47,66 @@ class ProfilePage extends StatelessWidget {
     ),
   );
 
-  Widget _identity(BuildContext context) {
-    final emailName = displayName.toLowerCase().replaceAll(' ', '.');
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 46,
-          backgroundColor: AppStyle.paleGreen,
-          child: Text(
-            _initials,
-            style: const TextStyle(
-              color: AppStyle.darkGreen,
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
-            ),
+  Widget _identity(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final compact =
+          constraints.maxWidth < 420 ||
+          MediaQuery.textScalerOf(context).scale(14) > 21;
+      final emailName = displayName.toLowerCase().replaceAll(' ', '.');
+      final avatar = CircleAvatar(
+        radius: 46,
+        backgroundColor: AppStyle.paleGreen,
+        child: Text(
+          _initials,
+          style: const TextStyle(
+            color: AppStyle.darkGreen,
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(width: 18),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                displayName,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '$emailName@email.com',
-                style: const TextStyle(color: AppStyle.muted, fontSize: 16),
-              ),
-            ],
+      );
+      final details = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            displayName,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
           ),
-        ),
-        _iconAction(
-          context,
-          Icons.edit_rounded,
-          'Edit profile',
-          'Profile editing is coming soon.',
-        ),
-      ],
-    );
-  }
+          const SizedBox(height: 4),
+          Text(
+            '$emailName@email.com',
+            maxLines: compact ? 2 : 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppStyle.muted, fontSize: 16),
+          ),
+        ],
+      );
+      final edit = _iconAction(
+        context,
+        Icons.edit_rounded,
+        'Edit profile',
+        'Profile editing is coming soon.',
+      );
+      if (compact) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [avatar, const Spacer(), edit]),
+            const SizedBox(height: 14),
+            details,
+          ],
+        );
+      }
+      return Row(
+        children: [
+          avatar,
+          const SizedBox(width: 18),
+          Expanded(child: details),
+          edit,
+        ],
+      );
+    },
+  );
 
   Widget _subscription(BuildContext context) => Container(
     padding: const EdgeInsets.all(22),
@@ -110,11 +125,16 @@ class ProfilePage extends StatelessWidget {
     ),
     child: LayoutBuilder(
       builder: (context, constraints) {
-        final narrow = constraints.maxWidth < 540;
+        final narrow =
+            constraints.maxWidth < 540 ||
+            MediaQuery.textScalerOf(context).scale(14) > 21;
         final details = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const CircleAvatar(
                   radius: 27,
@@ -125,7 +145,6 @@ class ProfilePage extends StatelessWidget {
                     size: 30,
                   ),
                 ),
-                const SizedBox(width: 12),
                 const Text(
                   'GreenBici Pro',
                   style: TextStyle(
@@ -134,7 +153,6 @@ class ProfilePage extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(width: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -165,7 +183,7 @@ class ProfilePage extends StatelessWidget {
         );
         final price = Column(
           crossAxisAlignment: narrow
-              ? CrossAxisAlignment.start
+              ? CrossAxisAlignment.stretch
               : CrossAxisAlignment.end,
           children: [
             const Text(
@@ -187,7 +205,10 @@ class ProfilePage extends StatelessWidget {
                 foregroundColor: AppStyle.darkGreen,
                 side: BorderSide.none,
               ),
-              child: const Text('Manage Subscription'),
+              child: const Text(
+                'Manage Subscription',
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         );
@@ -231,18 +252,21 @@ class ProfilePage extends StatelessWidget {
         child: Icon(icon, color: AppStyle.green, size: 22),
       ),
       const SizedBox(width: 14),
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 13, color: AppStyle.muted),
-          ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-          ),
-        ],
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: AppStyle.muted),
+            ),
+            Text(
+              value,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
       ),
     ],
   );
@@ -310,12 +334,14 @@ class ProfilePage extends StatelessWidget {
           child: Icon(Icons.logout_rounded, color: Color(0xFFC44242)),
         ),
         SizedBox(width: 14),
-        Text(
-          'Sign out',
-          style: TextStyle(
-            color: Color(0xFFC44242),
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+        Expanded(
+          child: Text(
+            'Sign out',
+            style: TextStyle(
+              color: Color(0xFFC44242),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],

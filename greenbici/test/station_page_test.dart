@@ -277,7 +277,10 @@ void main() {
       expect(find.byType(StationDetails), findsNothing);
 
       harness.repository.stations = [_centralStation];
-      await tester.tap(find.text('Refresh stations'));
+      final refresh = find.text('Refresh stations');
+      await tester.ensureVisible(refresh);
+      await tester.pumpAndSettle();
+      await tester.tap(refresh);
       await tester.pumpAndSettle();
       expect(find.text(_centralStation.name), findsOneWidget);
       expect(harness.location.permissionRequests, [true]);
@@ -344,9 +347,18 @@ void main() {
     await tester.tap(changeStation);
     await tester.pumpAndSettle();
     final riverside = find.widgetWithText(ListTile, _riversideStation.name);
-    await tester.ensureVisible(riverside);
+    await tester.scrollUntilVisible(
+      riverside,
+      120,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(riverside);
+    if (riverside.hitTestable().evaluate().isEmpty) {
+      await tester.drag(find.byType(ListView).last, const Offset(0, -200));
+      await tester.pumpAndSettle();
+    }
+    expect(riverside.hitTestable(), findsOneWidget);
+    await tester.tap(riverside.hitTestable());
     await tester.pumpAndSettle();
     expect(harness.map!.selectedStation!.id, _riversideStation.id);
     expect(harness.map!.interactionBlocked, isFalse);

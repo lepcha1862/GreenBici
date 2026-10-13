@@ -6,6 +6,38 @@ import 'package:greenbici/navbar/app_shell.dart';
 import 'package:greenbici/signin_signup/sign_up.dart';
 
 void main() {
+  testWidgets('Auth dividers are centered between primary and Google actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MyApp());
+
+    final signInDivider = find.text('— or sign in with —');
+    expect(signInDivider, findsOneWidget);
+    expect(
+      tester.getCenter(signInDivider).dx,
+      moreOrLessEquals(
+        tester.view.physicalSize.width / tester.view.devicePixelRatio / 2,
+        epsilon: 1,
+      ),
+    );
+
+    final signUp = find.widgetWithText(TextButton, 'Sign Up');
+    await tester.ensureVisible(signUp);
+    await tester.pumpAndSettle();
+    await tester.tap(signUp);
+    await tester.pumpAndSettle();
+    final signUpDivider = find.text('— or sign up with —');
+    expect(signUpDivider, findsOneWidget);
+    expect(
+      tester.getCenter(signUpDivider).dx,
+      moreOrLessEquals(
+        tester.view.physicalSize.width / tester.view.devicePixelRatio / 2,
+        epsilon: 1,
+      ),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Sign-in opens signup and returns without losing input', (
     tester,
   ) async {

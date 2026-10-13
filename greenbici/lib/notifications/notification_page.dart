@@ -165,18 +165,21 @@ class _NotificationPageState extends State<NotificationPage> {
   );
 
   Widget _filters() => LayoutBuilder(
-    builder: (context, constraints) => Row(
-      children: NotificationFilter.values.map((filter) {
-        final selected = filter == _filter;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(
-              right: filter == NotificationFilter.offers
-                  ? 0
-                  : constraints.maxWidth < 360
-                  ? 6
-                  : 10,
-            ),
+    builder: (context, constraints) {
+      final compact =
+          constraints.maxWidth < 440 ||
+          MediaQuery.textScalerOf(context).scale(14) > 21;
+      final columns = compact ? 2 : 4;
+      final spacing = constraints.maxWidth < 360 ? 6.0 : 10.0;
+      final itemWidth =
+          (constraints.maxWidth - spacing * (columns - 1)) / columns;
+      return Wrap(
+        spacing: spacing,
+        runSpacing: 8,
+        children: NotificationFilter.values.map((filter) {
+          final selected = filter == _filter;
+          return SizedBox(
+            width: itemWidth,
             child: Semantics(
               button: true,
               selected: selected,
@@ -185,7 +188,11 @@ class _NotificationPageState extends State<NotificationPage> {
                 onTap: () => setState(() => _filter = filter),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  height: 52,
+                  constraints: const BoxConstraints(minHeight: 52),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: selected ? AppStyle.green : Colors.white,
@@ -200,6 +207,7 @@ class _NotificationPageState extends State<NotificationPage> {
                   ),
                   child: Text(
                     _filterLabel(filter),
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       color: selected ? Colors.white : AppStyle.ink,
                       fontSize: 15,
@@ -209,10 +217,10 @@ class _NotificationPageState extends State<NotificationPage> {
                 ),
               ),
             ),
-          ),
-        );
-      }).toList(),
-    ),
+          );
+        }).toList(),
+      );
+    },
   );
 
   String _filterLabel(NotificationFilter filter) => switch (filter) {
@@ -232,40 +240,35 @@ class _NotificationCard extends StatelessWidget {
     padding: const EdgeInsets.all(16),
     color: item.unread ? const Color(0xFFFFFCF1) : Colors.white,
     radius: 20,
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CircleAvatar(
-          radius: 31,
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final compact =
+            constraints.maxWidth < 280 ||
+            MediaQuery.textScalerOf(context).scale(14) > 21;
+        final avatar = CircleAvatar(
+          radius: compact ? 25 : 31,
           backgroundColor: item.tint.withValues(alpha: .12),
-          child: Icon(item.icon, color: item.tint, size: 30),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
+          child: Icon(item.icon, color: item.tint, size: compact ? 25 : 30),
+        );
+        final content = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              item.title,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              item.message,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.45,
+                color: AppStyle.ink,
               ),
-              const SizedBox(height: 6),
-              Text(
-                item.message,
-                style: const TextStyle(
-                  fontSize: 14,
-                  height: 1.45,
-                  color: AppStyle.ink,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        Column(
+            ),
+          ],
+        );
+        final status = Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
@@ -276,8 +279,66 @@ class _NotificationCard extends StatelessWidget {
             if (item.unread)
               const Icon(Icons.circle, color: AppStyle.green, size: 12),
           ],
-        ),
-      ],
+        );
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  avatar,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      item.title,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                item.message,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.45,
+                  color: AppStyle.ink,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.time,
+                      style: const TextStyle(
+                        color: AppStyle.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  if (item.unread)
+                    const Icon(Icons.circle, color: AppStyle.green, size: 12),
+                ],
+              ),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            avatar,
+            const SizedBox(width: 16),
+            Expanded(child: content),
+            const SizedBox(width: 12),
+            status,
+          ],
+        );
+      },
     ),
   );
 }

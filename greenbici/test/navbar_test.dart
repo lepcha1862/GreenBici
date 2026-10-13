@@ -1,4 +1,4 @@
-import 'dart:ui' show SemanticsAction, SemanticsFlag;
+import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -45,9 +45,12 @@ void main() {
           final target = find.bySemanticsLabel(labels[index]);
           final node = tester.getSemantics(target);
           final data = node.getSemanticsData();
-          expect(data.hasFlag(SemanticsFlag.isButton), isTrue);
+          expect(data.flagsCollection.isButton, isTrue);
           expect(data.hasAction(SemanticsAction.tap), isTrue);
-          expect(data.hasFlag(SemanticsFlag.isSelected), index == 2);
+          expect(
+            data.flagsCollection.isSelected,
+            index == 2 ? Tristate.isTrue : Tristate.isFalse,
+          );
           expect(node.rect.width, greaterThanOrEqualTo(48));
           expect(node.rect.height, greaterThanOrEqualTo(48));
           await tester.tap(find.byTooltip(labels[index]));

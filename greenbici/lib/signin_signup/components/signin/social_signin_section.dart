@@ -21,25 +21,13 @@ class SocialSignInSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      Row(
-        children: [
-          const Expanded(child: Divider(color: AuthStyle.border)),
-          Flexible(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                signUp ? 'or sign up with' : 'or sign in with',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AuthStyle.secondary,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-          const Expanded(child: Divider(color: AuthStyle.border)),
-        ],
+      SizedBox(
+        width: double.infinity,
+        child: Text(
+          signUp ? '— or sign up with —' : '— or sign in with —',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AuthStyle.secondary, fontSize: 14),
+        ),
       ),
       const SizedBox(height: 20),
       ConstrainedBox(
