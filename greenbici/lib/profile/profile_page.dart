@@ -8,10 +8,12 @@ class ProfilePage extends StatelessWidget {
   const ProfilePage({
     super.key,
     this.displayName = 'Alex Morgan',
+    this.profileImage,
     this.onSearch,
   });
 
   final String displayName;
+  final ImageProvider<Object>? profileImage;
   final VoidCallback? onSearch;
 
   @override
@@ -47,66 +49,81 @@ class ProfilePage extends StatelessWidget {
     ),
   );
 
-  Widget _identity(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final compact =
-          constraints.maxWidth < 420 ||
-          MediaQuery.textScalerOf(context).scale(14) > 21;
-      final emailName = displayName.toLowerCase().replaceAll(' ', '.');
-      final avatar = CircleAvatar(
-        radius: 46,
-        backgroundColor: AppStyle.paleGreen,
-        child: Text(
-          _initials,
-          style: const TextStyle(
-            color: AppStyle.darkGreen,
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      );
-      final details = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _identity(BuildContext context) {
+    final emailName = displayName.trim().toLowerCase().replaceAll(
+      RegExp(r'\s+'),
+      '.',
+    );
+    return Semantics(
+      container: true,
+      label: 'Profile for $displayName',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            displayName,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+          Semantics(
+            image: profileImage != null,
+            label: profileImage == null
+                ? 'Profile initials $_initials'
+                : '$displayName profile image',
+            child: CircleAvatar(
+              key: const ValueKey('profile-avatar'),
+              radius: 32,
+              backgroundColor: AppStyle.paleGreen,
+              foregroundImage: profileImage,
+              onForegroundImageError: profileImage == null ? null : (_, _) {},
+              child: Text(
+                _initials,
+                key: const ValueKey('profile-initials'),
+                style: const TextStyle(
+                  color: AppStyle.darkGreen,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '$emailName@email.com',
-            maxLines: compact ? 2 : 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppStyle.muted, fontSize: 16),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  displayName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppStyle.ink,
+                    fontSize: 16,
+                    height: 1.2,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '$emailName@email.com',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppStyle.muted,
+                    fontSize: 12,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          _iconAction(
+            context,
+            Icons.edit_rounded,
+            'Edit profile',
+            'Profile editing is coming soon.',
           ),
         ],
-      );
-      final edit = _iconAction(
-        context,
-        Icons.edit_rounded,
-        'Edit profile',
-        'Profile editing is coming soon.',
-      );
-      if (compact) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(children: [avatar, const Spacer(), edit]),
-            const SizedBox(height: 14),
-            details,
-          ],
-        );
-      }
-      return Row(
-        children: [
-          avatar,
-          const SizedBox(width: 18),
-          Expanded(child: details),
-          edit,
-        ],
-      );
-    },
-  );
+      ),
+    );
+  }
 
   Widget _subscription(BuildContext context) => Container(
     padding: const EdgeInsets.all(22),
@@ -364,11 +381,14 @@ class ProfilePage extends StatelessWidget {
   void _message(BuildContext context, String message) =>
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
-  String get _initials => displayName
-      .trim()
-      .split(RegExp(r'\s+'))
-      .take(2)
-      .map((part) => part[0])
-      .join()
-      .toUpperCase();
+  String get _initials {
+    final parts = displayName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
 }

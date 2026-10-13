@@ -106,6 +106,16 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
       ..showSnackBar(SnackBar(content: Text(text)));
   }
 
+  void _recoverLocation(LocationFailureKind? failure) {
+    if (!kIsWeb && failure == LocationFailureKind.deniedForever) {
+      unawaited(_openSettings());
+    } else if (!kIsWeb && failure == LocationFailureKind.serviceDisabled) {
+      unawaited(_openSettings(location: true));
+    } else {
+      unawaited(_controller.locate());
+    }
+  }
+
   Future<void> _openLink(Uri uri) async {
     try {
       if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
@@ -249,6 +259,21 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
   Widget _mapOrLocationMessage(double bottomPadding) {
     final location = _controller.location;
     if (location != null) {
+      final failure = _controller.locationFailure?.kind;
+      final showLocationPrompt = _controller.usingFallback && failure != null;
+      final promptMessage = switch (failure) {
+        LocationFailureKind.denied || LocationFailureKind.deniedForever =>
+          'Grant location permission to show stations near you.',
+        LocationFailureKind.serviceDisabled =>
+          'Turn on location services to show stations near you.',
+        _ => 'Share your location to replace the CST fallback map.',
+      };
+      final promptActionLabel = switch (failure) {
+        LocationFailureKind.deniedForever when !kIsWeb => 'Open settings',
+        LocationFailureKind.serviceDisabled when !kIsWeb => 'Location settings',
+        LocationFailureKind.denied => 'Grant location access',
+        _ => 'Try my location',
+      };
       final map = StationMap(
         location: location,
         stations: _controller.stations,
@@ -260,6 +285,12 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
         bottomPadding: bottomPadding,
         interactionBlocked: _choosingStation,
         isFallback: _controller.usingFallback,
+        showLocationPrompt: showLocationPrompt,
+        locationPromptMessage: promptMessage,
+        locationPromptActionLabel: promptActionLabel,
+        onLocationPrompt: showLocationPrompt
+            ? () => _recoverLocation(failure)
+            : null,
       );
       return widget.mapBuilder?.call(context, map) ?? map;
     }
@@ -304,15 +335,7 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
       title: title,
       message: message,
       actionLabel: label,
-      onAction: () {
-        if (!kIsWeb && failure == LocationFailureKind.deniedForever) {
-          unawaited(_openSettings());
-        } else if (!kIsWeb && failure == LocationFailureKind.serviceDisabled) {
-          unawaited(_openSettings(location: true));
-        } else {
-          unawaited(_controller.locate());
-        }
-      },
+      onAction: () => _recoverLocation(failure),
     );
   }
 

@@ -122,8 +122,30 @@ void main() {
     expect(local.location, _fallback);
     expect(local.stations, const [_fallbackStation]);
     expect(local.usingFallback, isTrue);
-    expect(local.locationFailure, isNull);
+    expect(local.locationFailure?.kind, LocationFailureKind.unavailable);
     expect(repository.calls, 0);
+  });
+
+  test('CST fallback is visible while GPS is still resolving', () async {
+    final position = Completer<GeoPoint>();
+    location.result = () => position.future;
+    final local = StationController(
+      locationService: location,
+      repository: repository,
+      fallbackLocation: _fallback,
+      fallbackStations: const [_fallbackStation],
+    );
+    addTearDown(local.dispose);
+
+    final load = local.locate();
+
+    expect(local.location, _fallback);
+    expect(local.stations, const [_fallbackStation]);
+    expect(local.usingFallback, isTrue);
+    position.complete(_origin);
+    await load;
+    expect(local.location, _origin);
+    expect(local.usingFallback, isFalse);
   });
 
   for (final stationResult in ['empty', 'failure']) {

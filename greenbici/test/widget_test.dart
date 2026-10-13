@@ -11,7 +11,7 @@ void main() {
   ) async {
     await tester.pumpWidget(const MyApp());
 
-    final signInDivider = find.text('— or sign in with —');
+    final signInDivider = find.text(' or sign in with ');
     expect(signInDivider, findsOneWidget);
     expect(
       tester.getCenter(signInDivider).dx,
@@ -34,7 +34,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(signUp);
     await tester.pumpAndSettle();
-    final signUpDivider = find.text('— or sign up with —');
+    final signUpDivider = find.text(' or sign up with ');
     expect(signUpDivider, findsOneWidget);
     expect(
       tester.getCenter(signUpDivider).dx,

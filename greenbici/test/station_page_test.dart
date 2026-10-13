@@ -75,6 +75,62 @@ void main() {
     expect(harness.map!.isFallback, isTrue);
     expect(harness.map!.location, _cstLocation);
     expect(harness.map!.stations, const [_cstStation]);
+    expect(harness.map!.showLocationPrompt, isTrue);
+    expect(harness.map!.locationPromptActionLabel, 'Try my location');
+    await _unmount(tester);
+  });
+
+  testWidgets('CST map stays visible and asks for location permission', (
+    tester,
+  ) async {
+    final harness = _Harness(
+      location: _FakeLocationService()..failure = LocationFailureKind.denied,
+      fallbackLocation: _cstLocation,
+      fallbackStations: const [_cstStation],
+    );
+    await _pumpPage(tester, harness, useRealMap: true);
+
+    expect(
+      find.byKey(const ValueKey('cst-offline-fallback-map')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Grant location permission to show stations near you.'),
+      findsOneWidget,
+    );
+    expect(find.text('Grant location access'), findsOneWidget);
+    expect(find.text('Map unavailable'), findsNothing);
+
+    harness.location.failure = null;
+    await tester.tap(find.text('Grant location access'));
+    await tester.pumpAndSettle();
+    expect(harness.location.permissionRequests, [true, true]);
+    expect(find.text('Current location'), findsOneWidget);
+    await _unmount(tester);
+  });
+
+  testWidgets('CST permission fallback fits a narrow large-text screen', (
+    tester,
+  ) async {
+    final harness = _Harness(
+      location: _FakeLocationService()..failure = LocationFailureKind.denied,
+      fallbackLocation: _cstLocation,
+      fallbackStations: const [_cstStation],
+    );
+    await _pumpPage(
+      tester,
+      harness,
+      size: const Size(240, 320),
+      textScale: 3,
+      useRealMap: true,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cst-offline-fallback-map')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('location-permission-prompt')), findsOne);
+    expect(tester.takeException(), isNull);
     await _unmount(tester);
   });
 
@@ -235,7 +291,12 @@ void main() {
   ) async {
     final harness = _Harness();
     await _pumpPage(tester, harness, useRealMap: true);
-    expect(find.text('Map unavailable'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cst-offline-fallback-map')),
+      findsOneWidget,
+    );
+    expect(find.text('CST fallback map'), findsOneWidget);
+    expect(find.text('Map unavailable'), findsNothing);
     expect(find.text(_centralStation.name), findsOneWidget);
     expect(
       find.text('Station data © OpenStreetMap contributors').hitTestable(),

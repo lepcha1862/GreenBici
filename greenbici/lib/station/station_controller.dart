@@ -65,6 +65,12 @@ class StationController extends ChangeNotifier {
     final generation = ++_generation;
     locating = true;
     locationFailure = null;
+    if (location == null && fallbackLocation != null) {
+      location = fallbackLocation;
+      _stations = [...fallbackStations];
+      usingFallback = true;
+      cameraRevision++;
+    }
     _notify();
     try {
       final position = await locationService.currentPosition(
@@ -82,7 +88,7 @@ class StationController extends ChangeNotifier {
     } on LocationFailure catch (failure) {
       if (!_isCurrent(generation)) return;
       if (fallbackLocation != null) {
-        _applyFallback();
+        _applyFallback(locationFailure: failure);
         return;
       }
       locationFailure = failure;
@@ -91,7 +97,11 @@ class StationController extends ChangeNotifier {
     } catch (_) {
       if (!_isCurrent(generation)) return;
       if (fallbackLocation != null) {
-        _applyFallback();
+        _applyFallback(
+          locationFailure: const LocationFailure(
+            LocationFailureKind.unavailable,
+          ),
+        );
         return;
       }
       locationFailure = const LocationFailure(LocationFailureKind.unavailable);
@@ -105,11 +115,11 @@ class StationController extends ChangeNotifier {
     }
   }
 
-  void _applyFallback() {
+  void _applyFallback({LocationFailure? locationFailure}) {
     location = fallbackLocation;
     _stations = [...fallbackStations];
     usingFallback = true;
-    locationFailure = null;
+    this.locationFailure = locationFailure;
     stationLoadFailed = false;
     cameraRevision++;
   }

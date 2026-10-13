@@ -37,7 +37,7 @@ class SocialSignInSection extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Text(
-                    signUp ? '— or sign up with —' : '— or sign in with —',
+                    signUp ? ' or sign up with ' : ' or sign in with ',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: AuthStyle.secondary,

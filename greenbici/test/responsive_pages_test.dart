@@ -5,6 +5,46 @@ import 'package:greenbici/profile/profile_page.dart';
 import 'package:greenbici/theme/app_style.dart';
 
 void main() {
+  testWidgets('Profile uses first and last initials when no image is set', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppStyle.theme,
+        home: const Scaffold(
+          body: ProfilePage(displayName: 'Alex Jordan Morgan'),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('profile-avatar')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-initials')), findsOneWidget);
+    expect(find.text('AM'), findsOneWidget);
+    expect(find.text('alex.jordan.morgan@email.com'), findsOneWidget);
+    expect(find.byTooltip('Edit profile'), findsOneWidget);
+  });
+
+  testWidgets('Profile displays a supplied image inside the avatar', (
+    tester,
+  ) async {
+    const image = AssetImage('assets/branding/greenbici_app_icon.png');
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppStyle.theme,
+        home: const Scaffold(
+          body: ProfilePage(displayName: 'Alex Morgan', profileImage: image),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final avatar = tester.widget<CircleAvatar>(
+      find.byKey(const ValueKey('profile-avatar')),
+    );
+    expect(avatar.foregroundImage, same(image));
+    expect(tester.takeException(), isNull);
+  });
+
   const sizes = [
     Size(240, 320),
     Size(320, 568),

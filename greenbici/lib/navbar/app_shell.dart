@@ -10,9 +10,15 @@ import 'bottom_nav.dart';
 
 /// Owns navigation and the common light theme for all signed-in screens.
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, this.displayName = 'Alex', this.stationBuilder});
+  const AppShell({
+    super.key,
+    this.displayName = 'Alex',
+    this.profileImage,
+    this.stationBuilder,
+  });
 
   final String displayName;
+  final ImageProvider<Object>? profileImage;
 
   /// Allows an alternate Station implementation, including platform-free tests.
   final WidgetBuilder? stationBuilder;
@@ -81,6 +87,7 @@ class _AppShellState extends State<AppShell> {
               key: const ValueKey('profile-placeholder'),
               child: ProfilePage(
                 displayName: widget.displayName,
+                profileImage: widget.profileImage,
                 onSearch: () => _selectNavigation(1),
               ),
             ),
