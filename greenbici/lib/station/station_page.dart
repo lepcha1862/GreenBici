@@ -149,8 +149,8 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
                     TopNav(
                       title: 'Nearby Stations',
                       subtitle: _controller.location != null
-                          ? (_controller.location == DemoData.focus
-                                ? 'Demo focus · ${DemoData.focusLabel}'
+                          ? (_controller.usingFallback
+                                ? 'Fallback map · ${DemoData.focusLabel}'
                                 : 'Current location')
                           : _controller.locating
                           ? 'Finding your location'

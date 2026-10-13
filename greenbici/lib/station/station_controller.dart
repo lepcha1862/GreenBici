@@ -23,6 +23,7 @@ class StationController extends ChangeNotifier {
   bool locating = false;
   bool loadingStations = false;
   bool stationLoadFailed = false;
+  bool usingFallback = false;
   List<BicycleStation> _stations = const [];
   String _query = '';
   String? _selectedId;
@@ -70,13 +71,17 @@ class StationController extends ChangeNotifier {
         requestPermission: requestPermission,
       );
       if (!_isCurrent(generation)) return;
+      if (!position.isValid) {
+        throw const LocationFailure(LocationFailureKind.unavailable);
+      }
       location = position;
+      usingFallback = false;
       cameraRevision++;
       locating = false;
       await _loadStations(generation);
     } on LocationFailure catch (failure) {
       if (!_isCurrent(generation)) return;
-      if (fallbackLocation != null && fallbackStations.isNotEmpty) {
+      if (fallbackLocation != null) {
         _applyFallback();
         return;
       }
@@ -85,7 +90,7 @@ class StationController extends ChangeNotifier {
       _stations = const [];
     } catch (_) {
       if (!_isCurrent(generation)) return;
-      if (fallbackLocation != null && fallbackStations.isNotEmpty) {
+      if (fallbackLocation != null) {
         _applyFallback();
         return;
       }
@@ -103,6 +108,7 @@ class StationController extends ChangeNotifier {
   void _applyFallback() {
     location = fallbackLocation;
     _stations = [...fallbackStations];
+    usingFallback = true;
     locationFailure = null;
     stationLoadFailed = false;
     cameraRevision++;
@@ -123,6 +129,10 @@ class StationController extends ChangeNotifier {
     try {
       final results = await repository.nearby(location!);
       if (!_isCurrent(generation)) return;
+      if (results.isEmpty && fallbackLocation != null && !usingFallback) {
+        _applyFallback();
+        return;
+      }
       _stations = [...results]
         ..sort(
           (a, b) => location!
@@ -130,7 +140,12 @@ class StationController extends ChangeNotifier {
               .compareTo(location!.distanceTo(b.location)),
         );
     } catch (_) {
-      if (_isCurrent(generation)) stationLoadFailed = true;
+      if (!_isCurrent(generation)) return;
+      if (fallbackLocation != null) {
+        _applyFallback();
+      } else {
+        stationLoadFailed = true;
+      }
     } finally {
       if (_isCurrent(generation)) {
         loadingStations = false;

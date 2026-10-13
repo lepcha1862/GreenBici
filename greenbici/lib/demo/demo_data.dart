@@ -4,35 +4,36 @@ import '../station/models/geo_point.dart';
 /// Temporary product data kept in one place so it can be replaced by API
 /// mappers without changing the screen widgets.
 abstract final class DemoData {
-  static const focus = GeoPoint(latitude: 27.4728, longitude: 89.6393);
+  /// College of Science and Technology, Rinchending, Phuentsholing.
+  static const focus = GeoPoint(latitude: 26.8502058, longitude: 89.3939924);
   static const focusLabel = 'CST, Bhutan';
 
   static const stations = <BicycleStation>[
     BicycleStation(
       id: 'cst-main',
       name: 'CST Main Courtyard',
-      latitude: 27.4728,
-      longitude: 89.6393,
+      latitude: 26.8502058,
+      longitude: 89.3939924,
       bikesAvailable: 8,
       docksAvailable: 10,
       capacity: 12,
       operatorName: 'GreenBici Bhutan',
     ),
     BicycleStation(
-      id: 'norzin-lam',
-      name: 'Norzin Lam Greenway',
-      latitude: 27.4694,
-      longitude: 89.6382,
+      id: 'cst-academic',
+      name: 'CST Academic Block',
+      latitude: 26.85075,
+      longitude: 89.39455,
       bikesAvailable: 5,
       docksAvailable: 7,
       capacity: 10,
       operatorName: 'GreenBici Bhutan',
     ),
     BicycleStation(
-      id: 'memorial-chorten',
-      name: 'Memorial Chorten Dock',
-      latitude: 27.4766,
-      longitude: 89.6399,
+      id: 'cst-hostel',
+      name: 'CST Hostel Junction',
+      latitude: 26.84945,
+      longitude: 89.3929,
       bikesAvailable: 3,
       docksAvailable: 9,
       capacity: 12,

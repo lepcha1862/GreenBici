@@ -57,10 +57,19 @@ class _StationMapState extends State<StationMap> {
       return;
     }
     await MapsConfiguration.prepare();
-    final pins = await Future.wait([
-      createStationMarker(selected: false),
-      createStationMarker(selected: true),
-    ]);
+    List<BitmapDescriptor> pins;
+    try {
+      pins = await Future.wait([
+        createStationMarker(selected: false),
+        createStationMarker(selected: true),
+      ]);
+    } catch (_) {
+      // A marker-rendering failure should not prevent the map from appearing.
+      pins = [
+        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+      ];
+    }
     if (!mounted) return;
     _pin = pins[0];
     _selectedPin = pins[1];

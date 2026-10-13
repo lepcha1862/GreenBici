@@ -21,6 +21,13 @@ const _far = BicycleStation(
   latitude: 43.26,
   longitude: 76.9,
 );
+const _fallback = GeoPoint(latitude: 26.8502058, longitude: 89.3939924);
+const _fallbackStation = BicycleStation(
+  id: 'cst-main',
+  name: 'CST Main Courtyard',
+  latitude: 26.8502058,
+  longitude: 89.3939924,
+);
 
 void main() {
   late _Location location;
@@ -99,6 +106,51 @@ void main() {
     expect(controller.stationLoadFailed, isFalse);
     expect(controller.selectedStation, _near);
   });
+
+  test('GPS failure shows the configured CST fallback map', () async {
+    final local = StationController(
+      locationService: location,
+      repository: repository,
+      fallbackLocation: _fallback,
+      fallbackStations: const [_fallbackStation],
+    );
+    addTearDown(local.dispose);
+    location.failure = const LocationFailure(LocationFailureKind.unavailable);
+
+    await local.locate();
+
+    expect(local.location, _fallback);
+    expect(local.stations, const [_fallbackStation]);
+    expect(local.usingFallback, isTrue);
+    expect(local.locationFailure, isNull);
+    expect(repository.calls, 0);
+  });
+
+  for (final stationResult in ['empty', 'failure']) {
+    test(
+      '$stationResult station lookup switches to the CST fallback map',
+      () async {
+        final local = StationController(
+          locationService: location,
+          repository: repository,
+          fallbackLocation: _fallback,
+          fallbackStations: const [_fallbackStation],
+        );
+        addTearDown(local.dispose);
+        repository.result = stationResult == 'empty'
+            ? () async => const []
+            : () async => throw Exception('Map data unavailable');
+
+        await local.locate();
+
+        expect(local.location, _fallback);
+        expect(local.stations, const [_fallbackStation]);
+        expect(local.usingFallback, isTrue);
+        expect(local.stationLoadFailed, isFalse);
+        expect(repository.calls, 1);
+      },
+    );
+  }
 
   test(
     'repeat taps do not issue concurrent location or search requests',

@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 
 import 'signin_signup/signin_page.dart';
+import 'splash/splash_screen.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MyApp(showSplash: true));
+}
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.showSplash = false, this.startupLoader});
+
+  final bool showSplash;
+  final StartupLoader? startupLoader;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -20,6 +27,11 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
       ),
     ),
-    home: const SignInPage(),
+    home: showSplash
+        ? StartupGate(
+            loader: startupLoader ?? loadStartupAssets,
+            child: const SignInPage(),
+          )
+        : const SignInPage(),
   );
 }
