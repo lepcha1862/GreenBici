@@ -88,7 +88,9 @@ const demoNotifications = <NotificationItem>[
 ];
 
 class NotificationPage extends StatefulWidget {
-  const NotificationPage({super.key});
+  const NotificationPage({super.key, this.onSearch});
+
+  final VoidCallback? onSearch;
 
   @override
   State<NotificationPage> createState() => _NotificationPageState();
@@ -138,7 +140,9 @@ class _NotificationPageState extends State<NotificationPage> {
   Widget _header() => Row(
     crossAxisAlignment: CrossAxisAlignment.end,
     children: [
-      const Expanded(child: TopNav(title: 'Notifications', showSearch: false)),
+      Expanded(
+        child: TopNav(title: 'Notifications', onSearch: widget.onSearch),
+      ),
       Container(
         margin: const EdgeInsets.only(bottom: 28, right: 12),
         width: 34,

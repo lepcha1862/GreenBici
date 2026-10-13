@@ -15,7 +15,7 @@ void main() {
     expect(find.text('Sample station & bikes').hitTestable(), findsOneWidget);
     expect(find.text('Riverside Greenway Dock'), findsOneWidget);
     expect(find.text('0.2 mi from you'), findsOneWidget);
-    expect(find.byTooltip('Search stations'), findsNothing);
+    expect(find.byTooltip('Search stations'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

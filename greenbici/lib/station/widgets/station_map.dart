@@ -24,6 +24,7 @@ class StationMap extends StatefulWidget {
     this.bottomPadding = 0,
     this.locating = false,
     this.interactionBlocked = false,
+    this.isFallback = false,
   });
 
   final GeoPoint location;
@@ -35,6 +36,7 @@ class StationMap extends StatefulWidget {
   final double bottomPadding;
   final bool locating;
   final bool interactionBlocked;
+  final bool isFallback;
 
   @override
   State<StationMap> createState() => _StationMapState();
@@ -78,9 +80,15 @@ class _StationMapState extends State<StationMap> {
   @override
   void didUpdateWidget(covariant StationMap oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.cameraRevision != widget.cameraRevision) {
+    if (oldWidget.cameraRevision != widget.cameraRevision ||
+        oldWidget.isFallback != widget.isFallback) {
       unawaited(
-        _move(CameraUpdate.newLatLngZoom(_coordinates(widget.location), 15)),
+        _move(
+          CameraUpdate.newLatLngZoom(
+            _coordinates(widget.location),
+            _locationZoom,
+          ),
+        ),
       );
     } else if (oldWidget.selectedStation != null &&
         widget.selectedStation != null &&
@@ -97,6 +105,8 @@ class _StationMapState extends State<StationMap> {
 
   LatLng _coordinates(GeoPoint point) =>
       LatLng(point.latitude, point.longitude);
+
+  double get _locationZoom => widget.isFallback ? 17 : 15;
 
   Future<void> _move(CameraUpdate update) async {
     final map = _map;
@@ -166,7 +176,7 @@ class _StationMapState extends State<StationMap> {
               child: GoogleMap(
                 initialCameraPosition: CameraPosition(
                   target: _coordinates(widget.location),
-                  zoom: 15,
+                  zoom: _locationZoom,
                 ),
                 onMapCreated: (controller) {
                   if (!mounted) return;
@@ -174,7 +184,10 @@ class _StationMapState extends State<StationMap> {
                   // Use the latest location even if GPS finished during map creation.
                   unawaited(
                     _move(
-                      CameraUpdate.newLatLng(_coordinates(widget.location)),
+                      CameraUpdate.newLatLngZoom(
+                        _coordinates(widget.location),
+                        _locationZoom,
+                      ),
                     ),
                   );
                 },
@@ -222,9 +235,71 @@ class _StationMapState extends State<StationMap> {
                       infoWindow: InfoWindow(title: station.name),
                       onTap: () => widget.onSelected(station),
                     ),
+                  if (widget.isFallback &&
+                      !widget.stations.any(
+                        (station) => station.location == widget.location,
+                      ))
+                    Marker(
+                      markerId: const MarkerId('cst-fallback'),
+                      position: _coordinates(widget.location),
+                      icon: _selectedPin!,
+                      zIndexInt: 2,
+                      infoWindow: const InfoWindow(
+                        title: 'College of Science and Technology',
+                        snippet: 'Rinchending, Phuentsholing, Bhutan',
+                      ),
+                    ),
                 },
               ),
             ),
+            if (widget.isFallback)
+              Positioned(
+                left: 14,
+                top: 14,
+                child: PointerInterceptor(
+                  child: Semantics(
+                    label: 'CST fallback map',
+                    child: Material(
+                      key: const ValueKey('cst-fallback-map-badge'),
+                      color: Colors.white.withValues(alpha: .94),
+                      elevation: 3,
+                      borderRadius: BorderRadius.circular(16),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 160),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.school_rounded,
+                                size: 19,
+                                color: AppStyle.darkGreen,
+                              ),
+                              SizedBox(width: 7),
+                              Flexible(
+                                child: Text(
+                                  'CST fallback map',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: AppStyle.ink,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               right: 14,
               top: 14,

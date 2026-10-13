@@ -14,6 +14,14 @@ import 'package:greenbici/station/widgets/station_map.dart';
 import 'package:greenbici/theme/app_style.dart';
 
 const _userLocation = GeoPoint(latitude: 40.78, longitude: -73.97);
+const _cstLocation = GeoPoint(latitude: 26.8502058, longitude: 89.3939924);
+const _cstStation = BicycleStation(
+  id: 'cst-main',
+  name: 'CST Main Courtyard',
+  latitude: 26.8502058,
+  longitude: 89.3939924,
+  operatorName: 'GreenBici',
+);
 const _centralStation = BicycleStation(
   id: 'central',
   name: 'Central Park Dock',
@@ -50,6 +58,23 @@ void main() {
     expect(harness.map!.location, _userLocation);
     expect(harness.map!.cameraRevision, 1);
     expect(harness.repository.requests, [_userLocation]);
+    await _unmount(tester);
+  });
+
+  testWidgets('Location failure shows CST as the fallback map', (tester) async {
+    final harness = _Harness(
+      location: _FakeLocationService()
+        ..failure = LocationFailureKind.unavailable,
+      fallbackLocation: _cstLocation,
+      fallbackStations: const [_cstStation],
+    );
+    await _pumpPage(tester, harness);
+
+    expect(find.text('Fallback map · CST, Bhutan'), findsOneWidget);
+    expect(find.byKey(const ValueKey('map-preview')), findsOneWidget);
+    expect(harness.map!.isFallback, isTrue);
+    expect(harness.map!.location, _cstLocation);
+    expect(harness.map!.stations, const [_cstStation]);
     await _unmount(tester);
   });
 
@@ -163,45 +188,28 @@ void main() {
     });
   }
 
-  testWidgets('Station selection and search update the map and details', (
-    tester,
-  ) async {
-    final harness = _Harness();
-    await _pumpPage(tester, harness);
-    expect(harness.map!.stations.map((station) => station.id), [
-      'central',
-      'riverside',
-    ]);
-    expect(find.text(_centralStation.name), findsOneWidget);
+  testWidgets(
+    'Station selection updates the map without a local search field',
+    (tester) async {
+      final harness = _Harness();
+      await _pumpPage(tester, harness);
+      expect(harness.map!.stations.map((station) => station.id), [
+        'central',
+        'riverside',
+      ]);
+      expect(find.text(_centralStation.name), findsOneWidget);
 
-    // The injected platform-free map calls the same selection callback as a pin.
-    harness.map!.onSelected(_riversideStation);
-    await tester.pumpAndSettle();
-    expect(find.text(_riversideStation.name), findsOneWidget);
-    expect(harness.map!.selectedStation!.id, 'riverside');
-
-    await tester.tap(find.byTooltip('Search stations'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), ' central ');
-    await tester.pumpAndSettle();
-    expect(harness.map!.stations.single.id, 'central');
-    expect(find.text(_centralStation.name), findsOneWidget);
-    expect(find.text(_riversideStation.name), findsNothing);
-
-    await tester.enterText(find.byType(TextField), 'no such station');
-    await tester.pumpAndSettle();
-    expect(find.text('No matching stations'), findsOneWidget);
-    expect(harness.map!.stations, isEmpty);
-    await tester.tap(find.byTooltip('Clear search'));
-    await tester.pumpAndSettle();
-    expect(harness.map!.stations, hasLength(2));
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      '',
-    );
-    expect(tester.takeException(), isNull);
-    await _unmount(tester);
-  });
+      // The injected platform-free map calls the same selection callback as a pin.
+      harness.map!.onSelected(_riversideStation);
+      await tester.pumpAndSettle();
+      expect(find.text(_riversideStation.name), findsOneWidget);
+      expect(harness.map!.selectedStation!.id, 'riverside');
+      expect(find.byType(TextField), findsNothing);
+      expect(find.byTooltip('Search stations'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await _unmount(tester);
+    },
+  );
 
   testWidgets('Change station opens a selectable list and updates details', (
     tester,
@@ -349,31 +357,22 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets(
-    'Orientation and keyboard preserve station selection and search',
-    (tester) async {
-      final harness = _Harness();
-      await _pumpPage(tester, harness);
-      harness.map!.onSelected(_riversideStation);
-      await tester.tap(find.byTooltip('Search stations'));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'Riverside');
-      await tester.pumpAndSettle();
+  testWidgets('Orientation changes preserve station selection', (tester) async {
+    final harness = _Harness();
+    await _pumpPage(tester, harness);
+    harness.map!.onSelected(_riversideStation);
+    await tester.pumpAndSettle();
 
-      tester.view.physicalSize = const Size(844, 390);
-      tester.view.viewInsets = const FakeViewPadding(bottom: 140);
-      addTearDown(tester.view.resetViewInsets);
-      await tester.pumpAndSettle();
-      expect(harness.map!.selectedStation!.id, _riversideStation.id);
-      expect(harness.controller.query, 'Riverside');
-      expect(harness.location.permissionRequests, [true]);
-      await tester.ensureVisible(find.text('Get Directions'));
-      await tester.pumpAndSettle();
-      expect(find.text('Get Directions').hitTestable(), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      await _unmount(tester);
-    },
-  );
+    tester.view.physicalSize = const Size(844, 390);
+    await tester.pumpAndSettle();
+    expect(harness.map!.selectedStation!.id, _riversideStation.id);
+    expect(harness.location.permissionRequests, [true]);
+    await tester.ensureVisible(find.text('Get Directions'));
+    await tester.pumpAndSettle();
+    expect(find.text('Get Directions').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _unmount(tester);
+  });
 
   for (final textScale in [1.0, 2.0, 3.0]) {
     testWidgets('Live counts and long names fit narrow details at $textScale', (
@@ -433,15 +432,23 @@ void main() {
 }
 
 class _Harness {
-  _Harness({_FakeLocationService? location, _FakeStationRepository? repository})
-    : location = location ?? _FakeLocationService(),
-      repository = repository ?? _FakeStationRepository();
+  _Harness({
+    _FakeLocationService? location,
+    _FakeStationRepository? repository,
+    this.fallbackLocation,
+    this.fallbackStations = const [],
+  }) : location = location ?? _FakeLocationService(),
+       repository = repository ?? _FakeStationRepository();
 
   final _FakeLocationService location;
   final _FakeStationRepository repository;
+  final GeoPoint? fallbackLocation;
+  final List<BicycleStation> fallbackStations;
   late final controller = StationController(
     locationService: location,
     repository: repository,
+    fallbackLocation: fallbackLocation,
+    fallbackStations: fallbackStations,
   );
   StationMap? map;
 }

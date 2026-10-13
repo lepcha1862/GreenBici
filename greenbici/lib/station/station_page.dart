@@ -24,10 +24,16 @@ typedef StationMapBuilder = Widget Function(
 
 /// Tab content; AppShell supplies the shared bottom navigation and scaffold.
 class StationPage extends StatefulWidget {
-  const StationPage({super.key, this.controller, this.mapBuilder});
+  const StationPage({
+    super.key,
+    this.controller,
+    this.mapBuilder,
+    this.onSearch,
+  });
 
   final StationController? controller;
   final StationMapBuilder? mapBuilder;
+  final VoidCallback? onSearch;
 
   @override
   State<StationPage> createState() => _StationPageState();
@@ -36,8 +42,6 @@ class StationPage extends StatefulWidget {
 class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
   late final StationController _controller;
   OverpassStationRepository? _ownedRepository;
-  final _search = TextEditingController();
-  bool _searchOpen = false;
   bool _choosingStation = false;
   bool _returningFromSettings = false;
 
@@ -53,7 +57,6 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
           fallbackLocation: DemoData.focus,
           fallbackStations: DemoData.stations,
         );
-    _search.text = _controller.query;
     unawaited(_controller.locate());
   }
 
@@ -72,7 +75,6 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _search.dispose();
     if (widget.controller == null) _controller.dispose();
     _ownedRepository?.dispose();
     super.dispose();
@@ -159,10 +161,7 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
                       statusColor: _controller.location == null
                           ? AppStyle.muted
                           : AppStyle.green,
-                      onSearch: () =>
-                          setState(() => _searchOpen = !_searchOpen),
-                      searchController: _searchOpen ? _search : null,
-                      onSearchChanged: _controller.search,
+                      onSearch: widget.onSearch,
                     ),
                   ],
                 ),
@@ -260,6 +259,7 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
         cameraRevision: _controller.cameraRevision,
         bottomPadding: bottomPadding,
         interactionBlocked: _choosingStation,
+        isFallback: _controller.usingFallback,
       );
       return widget.mapBuilder?.call(context, map) ?? map;
     }
@@ -352,7 +352,6 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
                 if (_controller.query.trim().isEmpty) {
                   unawaited(_controller.refreshStations());
                 } else {
-                  _search.clear();
                   _controller.search('');
                 }
               },

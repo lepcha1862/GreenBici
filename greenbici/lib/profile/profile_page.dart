@@ -5,9 +5,14 @@ import '../theme/app_card.dart';
 import '../theme/app_style.dart';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key, this.displayName = 'Alex Morgan'});
+  const ProfilePage({
+    super.key,
+    this.displayName = 'Alex Morgan',
+    this.onSearch,
+  });
 
   final String displayName;
+  final VoidCallback? onSearch;
 
   @override
   Widget build(BuildContext context) => SafeArea(
@@ -23,7 +28,7 @@ class ProfilePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const TopNav(title: 'My Profile', showSearch: false),
+                TopNav(title: 'My Profile', onSearch: onSearch),
                 _identity(context),
                 const SizedBox(height: 18),
                 _subscription(context),

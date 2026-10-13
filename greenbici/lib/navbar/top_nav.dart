@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_style.dart';
 
-/// GreenBici's shared wordmark, screen context, and station search action.
+/// GreenBici's shared wordmark, screen context, and top-level search action.
 /// The parent supplies horizontal padding so this fits page-specific layouts.
 class TopNav extends StatelessWidget {
   const TopNav({
@@ -12,9 +12,6 @@ class TopNav extends StatelessWidget {
     this.subtitle,
     this.subtitleIcon = Icons.location_on_rounded,
     this.statusColor,
-    this.searchController,
-    this.onSearchChanged,
-    this.showSearch = true,
     this.onSearch,
   });
 
@@ -23,17 +20,17 @@ class TopNav extends StatelessWidget {
   final String? subtitle;
   final IconData subtitleIcon;
   final Color? statusColor;
-  final TextEditingController? searchController;
-  final ValueChanged<String>? onSearchChanged;
-  final bool showSearch;
   final VoidCallback? onSearch;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final compact =
-          constraints.maxWidth < (showSearch ? 420 : 320) ||
+          constraints.maxWidth < 420 ||
           MediaQuery.textScalerOf(context).scale(14) > 21;
+      final wordmarkWidth = (constraints.maxWidth - 64)
+          .clamp(0, 126)
+          .toDouble();
       final heading = title == null
           ? Text.rich(
               TextSpan(
@@ -92,50 +89,21 @@ class TopNav extends StatelessWidget {
           children: [
             Row(
               children: [
-                const SizedBox(width: 126, child: _Wordmark()),
+                SizedBox(width: wordmarkWidth, child: const _Wordmark()),
                 if (!compact) ...[
                   const SizedBox(width: 26),
                   Expanded(flex: 2, child: heading),
                 ] else
                   const Spacer(),
-                if (showSearch) ...[
-                  const SizedBox(width: 8),
-                  IconButton(
-                    tooltip: 'Search stations',
-                    onPressed: onSearch,
-                    icon: const Icon(Icons.search_rounded, size: 31),
-                  ),
-                ],
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: 'Search stations',
+                  onPressed: onSearch,
+                  icon: const Icon(Icons.search_rounded, size: 31),
+                ),
               ],
             ),
             if (compact) ...[const SizedBox(height: 6), heading],
-            if (searchController != null) ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: searchController,
-                onChanged: onSearchChanged,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: 'Search nearby stations',
-                  labelText: 'Search stations',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: IconButton(
-                    tooltip: 'Clear search',
-                    onPressed: () {
-                      searchController!.clear();
-                      onSearchChanged?.call('');
-                    },
-                    icon: const Icon(Icons.close),
-                  ),
-                  filled: true,
-                  fillColor: AppStyle.paleGreen,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       );

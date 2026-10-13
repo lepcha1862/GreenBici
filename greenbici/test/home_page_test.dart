@@ -131,7 +131,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(HomePage), findsNothing);
-      expect(find.byType(TopNav), findsNothing);
+      expect(find.byType(TopNav), findsOneWidget);
+      expect(find.byTooltip('Search stations'), findsOneWidget);
       expect(find.byType(BottomNav).hitTestable(), findsOneWidget);
     }
     expect(tester.takeException(), isNull);
@@ -150,10 +151,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(RidePage), findsOneWidget);
     expect(tester.widget<BottomNav>(find.byType(BottomNav)).selectedIndex, 2);
-    expect(find.byTooltip('Search stations'), findsNothing);
+    expect(find.byTooltip('Search stations'), findsOneWidget);
+    await tester.tap(find.byTooltip('Search stations'));
+    await tester.pumpAndSettle();
+    _expectHeadingInBody(tester, 'Nearby Stations');
+    expect(tester.widget<BottomNav>(find.byType(BottomNav)).selectedIndex, 1);
     await tester.tap(find.byTooltip('Home'));
     await tester.pumpAndSettle();
     expect(find.byType(HomePage), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _unmount(tester);
+  });
+
+  testWidgets('Top navigation search opens Stations from Notifications', (
+    tester,
+  ) async {
+    _configureView(tester, const Size(320, 640));
+    await tester.pumpWidget(_homeApp(reducedMotion: true));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Notifications'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Search stations'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Search stations'));
+    await tester.pumpAndSettle();
+    _expectHeadingInBody(tester, 'Nearby Stations');
+    expect(tester.widget<BottomNav>(find.byType(BottomNav)).selectedIndex, 1);
     expect(tester.takeException(), isNull);
     await _unmount(tester);
   });

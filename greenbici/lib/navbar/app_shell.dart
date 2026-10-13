@@ -58,22 +58,29 @@ class _AppShellState extends State<AppShell> {
           TickerMode(
             enabled: _selectedIndex == 1,
             // Keep GPS permission prompts deferred until Stations is opened.
-            // Once visited, keep the map, selected station, and search intact.
+            // Once visited, keep the map and selected station intact.
             child: _stationVisited
-                ? widget.stationBuilder?.call(context) ?? const StationPage()
+                ? widget.stationBuilder?.call(context) ??
+                      StationPage(onSearch: () => _selectNavigation(1))
                 : const SizedBox.shrink(),
           ),
-          TickerMode(enabled: _selectedIndex == 2, child: const RidePage()),
+          TickerMode(
+            enabled: _selectedIndex == 2,
+            child: RidePage(onSearch: () => _selectNavigation(1)),
+          ),
           TickerMode(
             enabled: _selectedIndex == 3,
-            child: const KeyedSubtree(
-              key: ValueKey('notifications-placeholder'),
-              child: NotificationPage(),
+            child: KeyedSubtree(
+              key: const ValueKey('notifications-placeholder'),
+              child: NotificationPage(onSearch: () => _selectNavigation(1)),
             ),
           ),
           TickerMode(
             enabled: _selectedIndex == 4,
-            child: ProfilePage(displayName: widget.displayName),
+            child: ProfilePage(
+              displayName: widget.displayName,
+              onSearch: () => _selectNavigation(1),
+            ),
           ),
         ],
       ),

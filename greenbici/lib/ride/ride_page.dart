@@ -10,7 +10,9 @@ import 'widgets/station_summary.dart';
 
 /// Ride inventory content. The application shell supplies the navigation.
 class RidePage extends StatelessWidget {
-  const RidePage({super.key});
+  const RidePage({super.key, this.onSearch});
+
+  final VoidCallback? onSearch;
 
   Future<void> _showUnlockPreview(BuildContext context, RideBike bike) =>
       showDialog<void>(
@@ -49,7 +51,7 @@ class RidePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const TopNav(title: 'Available Bikes', showSearch: false),
+                    TopNav(title: 'Available Bikes', onSearch: onSearch),
                     LayoutBuilder(
                       builder: (context, contentBounds) {
                         final summary = RideStationSummary(
