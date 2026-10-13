@@ -61,7 +61,7 @@ class _HomePageState extends State<HomePage> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _startRide() => _previewMessage('Bike unlocking is not connected yet.');
+  void _startRide() => widget.onNavigate(2);
 
   Widget _section(Widget child) => Padding(
     padding: const EdgeInsets.only(bottom: 24),

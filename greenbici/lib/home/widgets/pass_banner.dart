@@ -12,13 +12,14 @@ class PassBanner extends StatelessWidget {
     builder: (context, constraints) {
       final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
       final compact = constraints.maxWidth < 540 || textScale > 1.4;
+      final showIcon = constraints.maxWidth >= 320 && textScale <= 1.5;
       final manageButton = FilledButton(
         onPressed: onManagePlan,
         style: FilledButton.styleFrom(
           foregroundColor: Colors.white,
-          backgroundColor: const Color(0xFF278EA7),
+          backgroundColor: const Color(0xFF176F85),
           padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 11),
-          minimumSize: const Size(48, 40),
+          minimumSize: const Size(48, 48),
           tapTargetSize: MaterialTapTargetSize.padded,
           textStyle: const TextStyle(
             fontFamily: 'Arial',
@@ -38,26 +39,28 @@ class PassBanner extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(18, 15, 18, 15),
         child: Row(
           children: [
-            SizedBox(
-              width: compact ? 49 : 65,
-              height: compact ? 60 : 72,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(
-                    Icons.shield_rounded,
-                    size: compact ? 57 : 72,
-                    color: const Color(0xFF22A6E5),
-                  ),
-                  Icon(
-                    Icons.star_border_rounded,
-                    size: compact ? 30 : 36,
-                    color: Colors.white,
-                  ),
-                ],
+            if (showIcon) ...[
+              SizedBox(
+                width: compact ? 49 : 65,
+                height: compact ? 60 : 72,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      Icons.shield_rounded,
+                      size: compact ? 57 : 72,
+                      color: const Color(0xFF22A6E5),
+                    ),
+                    Icon(
+                      Icons.star_border_rounded,
+                      size: compact ? 30 : 36,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 17),
+              const SizedBox(width: 17),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,7 +84,7 @@ class PassBanner extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF20A4E8),
+                          color: const Color(0xFF176F85),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text(

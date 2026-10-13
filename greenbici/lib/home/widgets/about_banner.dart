@@ -14,7 +14,9 @@ class AboutBanner extends StatelessWidget {
       color: HomeStyle.paleGreen,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 520;
+          final largeText = MediaQuery.textScalerOf(context).scale(14) > 21;
+          final wide = constraints.maxWidth >= 520 && !largeText;
+          final showIcon = constraints.maxWidth >= 320 && !largeText;
           return Stack(
             children: [
               Positioned(
@@ -33,20 +35,22 @@ class AboutBanner extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Container(
-                      width: wide ? 66 : 48,
-                      height: wide ? 66 : 48,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFDDEFCB),
-                        shape: BoxShape.circle,
+                    if (showIcon) ...[
+                      Container(
+                        width: wide ? 66 : 48,
+                        height: wide ? 66 : 48,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFDDEFCB),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.spa_outlined,
+                          color: HomeStyle.green,
+                          size: wide ? 42 : 31,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.spa_outlined,
-                        color: HomeStyle.green,
-                        size: wide ? 42 : 31,
-                      ),
-                    ),
-                    const SizedBox(width: 20),
+                      const SizedBox(width: 20),
+                    ],
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'auth_style.dart';
+
 /// Outlined field shared by both authentication screens.
 class AuthInput extends StatefulWidget {
   const AuthInput({
@@ -11,6 +13,8 @@ class AuthInput extends StatefulWidget {
     this.email = false,
     this.last = false,
     this.autofillHints,
+    this.textCapitalization = TextCapitalization.none,
+    this.onSubmitted,
   });
 
   final String label;
@@ -20,6 +24,8 @@ class AuthInput extends StatefulWidget {
   final bool email;
   final bool last;
   final Iterable<String>? autofillHints;
+  final TextCapitalization textCapitalization;
+  final VoidCallback? onSubmitted;
 
   @override
   State<AuthInput> createState() => _AuthInputState();
@@ -31,60 +37,96 @@ class _AuthInputState extends State<AuthInput> {
   @override
   Widget build(BuildContext context) {
     final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(22),
-      borderSide: const BorderSide(color: Color(0xFFCBD1D1), width: 1.2),
+      borderRadius: BorderRadius.circular(AuthStyle.radius),
+      borderSide: const BorderSide(color: AuthStyle.border),
     );
-    return TextField(
-      controller: widget.controller,
-      obscureText: widget.password && !_visible,
-      autocorrect: !widget.password && !widget.email,
-      enableSuggestions: !widget.password,
-      autofillHints: widget.autofillHints,
-      scrollPadding: const EdgeInsets.all(28),
-      keyboardType: widget.email
-          ? TextInputType.emailAddress
-          : TextInputType.text,
-      textInputAction: widget.last
-          ? TextInputAction.done
-          : TextInputAction.next,
-      style: const TextStyle(fontSize: 19, color: Color(0xFFF1F2EF)),
-      decoration: InputDecoration(
-        labelText: widget.label,
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        labelStyle: const TextStyle(color: Color(0xFF93BC58), fontSize: 21),
-        hintText: widget.hint,
-        hintStyle: const TextStyle(color: Color(0xFFBEC3C4), fontSize: 19),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 25,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Keep labels readable at large text sizes rather than shrinking them
+        // into an outline gap. The field exposes the label to screen readers.
+        ExcludeSemantics(
+          child: Text(
+            widget.label,
+            style: const TextStyle(
+              color: AuthStyle.accent,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.35,
+            ),
+          ),
         ),
-        prefixIcon: Icon(
-          widget.password
-              ? Icons.lock_outline_rounded
-              : widget.email
-              ? Icons.mail_outline_rounded
-              : Icons.person,
-          color: const Color(0xFFE8EEED),
-          size: 25,
+        const SizedBox(height: 8),
+        Semantics(
+          label: widget.label,
+          child: TextField(
+            controller: widget.controller,
+            textCapitalization: widget.textCapitalization,
+            obscureText: widget.password && !_visible,
+            autocorrect: !widget.password && !widget.email,
+            enableSuggestions: !widget.password,
+            autofillHints: widget.autofillHints,
+            onSubmitted: widget.onSubmitted == null
+                ? null
+                : (_) => widget.onSubmitted!(),
+            onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+            scrollPadding: const EdgeInsets.all(28),
+            keyboardType: widget.email
+                ? TextInputType.emailAddress
+                : widget.password
+                ? TextInputType.visiblePassword
+                : TextInputType.text,
+            textInputAction: widget.last
+                ? TextInputAction.done
+                : TextInputAction.next,
+            cursorColor: AuthStyle.accent,
+            style: const TextStyle(
+              fontSize: 16,
+              height: 1.4,
+              color: AuthStyle.foreground,
+            ),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AuthStyle.field,
+              hintText: widget.hint,
+              hintStyle: const TextStyle(
+                color: AuthStyle.secondary,
+                fontSize: 16,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 17,
+              ),
+              prefixIcon: Icon(
+                widget.password
+                    ? Icons.lock_outline_rounded
+                    : widget.email
+                    ? Icons.mail_outline_rounded
+                    : Icons.person,
+                color: AuthStyle.secondary,
+                size: 22,
+              ),
+              suffixIcon: widget.password
+                  ? IconButton(
+                      tooltip: _visible ? 'Hide password' : 'Show password',
+                      onPressed: () => setState(() => _visible = !_visible),
+                      icon: Icon(
+                        _visible
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        size: 22,
+                        color: AuthStyle.secondary,
+                      ),
+                    )
+                  : null,
+              enabledBorder: border,
+              focusedBorder: border.copyWith(
+                borderSide: const BorderSide(color: AuthStyle.accent, width: 2),
+              ),
+            ),
+          ),
         ),
-        suffixIcon: widget.password
-            ? IconButton(
-                tooltip: _visible ? 'Hide password' : 'Show password',
-                onPressed: () => setState(() => _visible = !_visible),
-                icon: Icon(
-                  _visible
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  size: 22,
-                  color: const Color(0xFFE8EEED),
-                ),
-              )
-            : null,
-        enabledBorder: border,
-        focusedBorder: border.copyWith(
-          borderSide: const BorderSide(color: Color(0xFF93BC58), width: 1.8),
-        ),
-      ),
+      ],
     );
   }
 }

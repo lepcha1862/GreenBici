@@ -25,59 +25,78 @@ class StationDetails extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     mainAxisSize: MainAxisSize.min,
     children: [
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const CircleAvatar(
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final stacked =
+              constraints.maxWidth < 250 ||
+              (constraints.maxWidth < 420 &&
+                  MediaQuery.textScalerOf(context).scale(14) > 21);
+          const icon = CircleAvatar(
             radius: 25,
             backgroundColor: AppStyle.paleGreen,
             child: Icon(Icons.pedal_bike, size: 30, color: AppStyle.darkGreen),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          );
+          final summary = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Semantics(
+                header: true,
+                child: Text(
                   station.name,
                   style: const TextStyle(
                     fontSize: 21,
                     fontWeight: FontWeight.w700,
-                    height: 1.15,
+                    height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 6),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                stationDistance(userLocation.distanceTo(station.location)),
+                style: const TextStyle(color: AppStyle.muted),
+              ),
+              if (station.operatorName != null)
                 Text(
-                  stationDistance(userLocation.distanceTo(station.location)),
+                  station.operatorName!,
                   style: const TextStyle(color: AppStyle.muted),
                 ),
-                if (station.operatorName != null)
-                  Text(
-                    station.operatorName!,
-                    style: const TextStyle(color: AppStyle.muted),
-                  ),
-              ],
-            ),
-          ),
-        ],
+            ],
+          );
+          return stacked
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [icon, const SizedBox(height: 12), summary],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    icon,
+                    const SizedBox(width: 12),
+                    Expanded(child: summary),
+                  ],
+                );
+        },
       ),
       const SizedBox(height: 18),
       if (station.bikesAvailable != null || station.docksAvailable != null)
-        Wrap(
-          spacing: 24,
-          runSpacing: 12,
-          children: [
-            _Availability(
-              icon: Icons.pedal_bike,
-              value: station.bikesAvailable,
-              label: 'bikes available',
-            ),
-            _Availability(
-              icon: Icons.local_parking,
-              value: station.docksAvailable,
-              label: 'docks available',
-            ),
-          ],
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Wrap(
+            spacing: 24,
+            runSpacing: 12,
+            children: [
+              _Availability(
+                icon: Icons.pedal_bike,
+                value: station.bikesAvailable,
+                label: 'bikes available',
+              ),
+              _Availability(
+                icon: Icons.local_parking,
+                value: station.docksAvailable,
+                label: 'docks available',
+              ),
+            ],
+          ),
         ),
       if (station.bikesAvailable == null || station.docksAvailable == null) ...[
         const Text(
@@ -88,7 +107,7 @@ class StationDetails extends StatelessWidget {
       const SizedBox(height: 16),
       FilledButton.icon(
         style: FilledButton.styleFrom(
-          backgroundColor: AppStyle.green,
+          backgroundColor: AppStyle.darkGreen,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
           shape: RoundedRectangleBorder(
@@ -97,7 +116,7 @@ class StationDetails extends StatelessWidget {
         ),
         onPressed: onDirections,
         icon: const Icon(Icons.directions),
-        label: const Text('Get Directions'),
+        label: const Text('Get Directions', textAlign: TextAlign.center),
       ),
     ],
   );

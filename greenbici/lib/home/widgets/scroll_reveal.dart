@@ -76,6 +76,7 @@ class _ScrollRevealState extends State<ScrollReveal>
   @override
   Widget build(BuildContext context) => FadeTransition(
     opacity: _curve,
+    alwaysIncludeSemantics: true,
     child: SlideTransition(
       position: Tween<Offset>(
         begin: const Offset(0, .06),

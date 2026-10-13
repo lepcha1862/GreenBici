@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../demo/demo_data.dart';
 import '../home_style.dart';
 
 class StationsSection extends StatelessWidget {
@@ -21,21 +22,30 @@ class StationsSection extends StatelessWidget {
         builder: (context, constraints) {
           final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
           final stacked = constraints.maxWidth < 540 || textScale > 1.4;
+          final cardWidth = stacked
+              ? constraints.maxWidth
+              : (constraints.maxWidth - 16) / 2;
+          final showPhoto = cardWidth >= 292 && textScale <= 1.5;
+          final demoStations = DemoData.stations.take(2).toList();
           final cards = [
             _StationCard(
-              name: 'Central Park Station',
-              distance: '0.4 km away',
-              bikes: '12 / 18 bikes',
+              name: demoStations[0].name,
+              distance:
+                  '${(DemoData.focus.distanceTo(demoStations[0].location) / 1000).toStringAsFixed(1)} km away',
+              bikes: '${demoStations[0].bikesAvailable} bikes available',
               image: 'assets/images/home/central_park.jpg',
               limited: false,
+              showPhoto: showPhoto,
               onTap: () => onStationTap('Central Park Station'),
             ),
             _StationCard(
-              name: 'Riverside Station',
-              distance: '0.8 km away',
-              bikes: '3 / 15 bikes',
+              name: demoStations[1].name,
+              distance:
+                  '${(DemoData.focus.distanceTo(demoStations[1].location) / 1000).toStringAsFixed(1)} km away',
+              bikes: '${demoStations[1].bikesAvailable} bikes available',
               image: 'assets/images/home/riverside.jpg',
               limited: true,
+              showPhoto: showPhoto,
               onTap: () => onStationTap('Riverside Station'),
             ),
           ];
@@ -67,6 +77,7 @@ class _StationCard extends StatelessWidget {
     required this.bikes,
     required this.image,
     required this.limited,
+    required this.showPhoto,
     required this.onTap,
   });
 
@@ -75,6 +86,7 @@ class _StationCard extends StatelessWidget {
   final String bikes;
   final String image;
   final bool limited;
+  final bool showPhoto;
   final VoidCallback onTap;
 
   @override
@@ -84,27 +96,29 @@ class _StationCard extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(11),
-          child: Image.asset(
-            image,
-            width: 76,
-            height: 80,
-            fit: BoxFit.cover,
-            excludeFromSemantics: true,
-            errorBuilder: (context, error, stackTrace) => Container(
+        if (showPhoto) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(11),
+            child: Image.asset(
+              image,
               width: 76,
               height: 80,
-              color: HomeStyle.paleGreen,
-              child: const Icon(
-                Icons.park_outlined,
-                color: HomeStyle.green,
-                size: 32,
+              fit: BoxFit.cover,
+              excludeFromSemantics: true,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 76,
+                height: 80,
+                color: HomeStyle.paleGreen,
+                child: const Icon(
+                  Icons.park_outlined,
+                  color: HomeStyle.green,
+                  size: 32,
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 13),
+          const SizedBox(width: 13),
+        ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +195,7 @@ class _StationCard extends StatelessWidget {
                       limited ? 'Limited' : 'Available',
                       style: TextStyle(
                         color: limited
-                            ? const Color(0xFFB28A31)
+                            ? const Color(0xFF785812)
                             : HomeStyle.darkGreen,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w500,

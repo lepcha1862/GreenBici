@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'auth_action_button.dart';
+import 'auth_style.dart';
 
 class SocialSignInSection extends StatelessWidget {
   const SocialSignInSection({
@@ -22,33 +23,38 @@ class SocialSignInSection extends StatelessWidget {
     children: [
       Row(
         children: [
-          Expanded(child: Divider(color: Color(0xFF777974))),
+          const Expanded(child: Divider(color: AuthStyle.border)),
           Flexible(
             flex: 3,
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
                 signUp ? 'or sign up with' : 'or sign in with',
                 textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AuthStyle.secondary,
+                  fontSize: 14,
+                ),
               ),
             ),
           ),
-          Expanded(child: Divider(color: Color(0xFF777974))),
+          const Expanded(child: Divider(color: AuthStyle.border)),
         ],
       ),
-      const SizedBox(height: 26),
+      const SizedBox(height: 20),
       ConstrainedBox(
         constraints: const BoxConstraints(
-          minHeight: 62,
+          minHeight: 56,
           minWidth: double.infinity,
         ),
         child: OutlinedButton(
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            foregroundColor: const Color(0xFFE2E2E2),
-            side: const BorderSide(color: Color(0xFFD5D7D3)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+            foregroundColor: AuthStyle.foreground,
+            backgroundColor: AuthStyle.field,
+            side: const BorderSide(color: AuthStyle.border),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(AuthStyle.radius),
             ),
           ),
           onPressed: () =>
@@ -56,19 +62,28 @@ class SocialSignInSection extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CustomPaint(size: Size(28, 28), painter: _GoogleMarkPainter()),
-              SizedBox(width: 9),
+              CustomPaint(
+                size: const Size(24, 24),
+                painter: const _GoogleMarkPainter(),
+              ),
+              const SizedBox(width: 12),
               Flexible(
                 child: Text(
                   signUp ? 'Sign up with Google' : 'Sign in with Google',
-                  style: TextStyle(fontFamily: 'Arial', fontSize: 19),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Arial',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 16),
       Wrap(
         alignment: WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -76,15 +91,23 @@ class SocialSignInSection extends StatelessWidget {
           Text(
             accountPrompt,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 15),
+            style: const TextStyle(fontSize: 14, color: AuthStyle.secondary),
           ),
           TextButton(
-            onPressed: onNavigate,
+            onPressed: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              onNavigate();
+            },
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF93BC58),
-              padding: const EdgeInsets.only(left: 4),
-              minimumSize: const Size(0, 48),
-              textStyle: const TextStyle(fontFamily: 'Arial', fontSize: 15),
+              foregroundColor: AuthStyle.accent,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              minimumSize: const Size(48, 48),
+              textStyle: const TextStyle(
+                fontFamily: 'Arial',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             child: Text(linkLabel),
           ),

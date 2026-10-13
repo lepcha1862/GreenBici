@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_card.dart';
 import '../theme/app_style.dart';
 
 // Keep existing dashboard widgets on the same shared palette.
@@ -20,29 +21,12 @@ class HomeCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x090E2E0A),
-          blurRadius: 14,
-          offset: Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Material(
-      color: color,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: HomeStyle.border, width: .6),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(padding: padding, child: child),
-      ),
-    ),
+  Widget build(BuildContext context) => AppCard(
+    color: color,
+    padding: padding,
+    radius: 16,
+    onTap: onTap,
+    child: child,
   );
 }
 
@@ -62,14 +46,17 @@ class SectionHeading extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: 12,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          Semantics(
+            header: true,
+            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+          ),
           if (onViewAll != null)
             TextButton(
               onPressed: onViewAll,
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.only(left: 4),
-                minimumSize: const Size(64, 40),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size(64, 48),
+                tapTargetSize: MaterialTapTargetSize.padded,
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,

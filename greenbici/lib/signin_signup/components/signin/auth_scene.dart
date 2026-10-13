@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'auth_style.dart';
+
 /// Fluid form layout with a readable width and scrollable intrinsic height.
 class AuthScene extends StatelessWidget {
   const AuthScene({super.key, required this.child, this.topSpacing = 72});
@@ -9,67 +11,106 @@ class AuthScene extends StatelessWidget {
   final double topSpacing;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFF101212),
-    resizeToAvoidBottomInset: false,
-    body: Stack(
-      children: [
-        const Positioned.fill(
-          child: RepaintBoundary(
-            child: CustomPaint(painter: _CyclingScenePainter()),
-          ),
-        ),
-        SafeArea(
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
+  Widget build(BuildContext context) => Theme(
+    data: ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      fontFamily: 'Arial',
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AuthStyle.primary,
+        brightness: Brightness.dark,
+        primary: AuthStyle.accent,
+        surface: const Color(0xFF12252A),
+        onSurface: AuthStyle.foreground,
+      ),
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: AuthStyle.accent,
+        selectionColor: Color(0x665B9665),
+        selectionHandleColor: AuthStyle.accent,
+      ),
+    ),
+    child: Scaffold(
+      backgroundColor: const Color(0xFF101212),
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: RepaintBoundary(
+              child: CustomPaint(painter: _CyclingScenePainter()),
             ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final horizontalPadding = (constraints.maxWidth * .07).clamp(
-                  16.0,
-                  28.0,
-                );
-                final verticalScale = (constraints.maxHeight / 900).clamp(
-                  .3,
-                  1.0,
-                );
-                return SingleChildScrollView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 480),
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            horizontalPadding,
-                            topSpacing * verticalScale,
-                            horizontalPadding,
-                            150,
-                          ),
-                          child: DefaultTextStyle(
-                            style: const TextStyle(
-                              fontFamily: 'Arial',
-                              fontSize: 16,
-                              height: 1.15,
-                              color: Color(0xFFE6E6E6),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final wide = constraints.maxWidth >= 600;
+                  final horizontalPadding = constraints.maxWidth < 360
+                      ? 16.0
+                      : 24.0;
+                  final verticalPadding =
+                      (topSpacing * constraints.maxHeight / 1200).clamp(
+                        16.0,
+                        40.0,
+                      );
+                  return SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                          vertical: verticalPadding,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 460),
+                            child: Container(
+                              padding: wide
+                                  ? const EdgeInsets.all(32)
+                                  : const EdgeInsets.only(bottom: 24),
+                              decoration: wide
+                                  ? BoxDecoration(
+                                      color: AuthStyle.surface,
+                                      borderRadius: BorderRadius.circular(28),
+                                      border: Border.all(
+                                        color: const Color(0x335B756A),
+                                      ),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Color(0x26000000),
+                                          blurRadius: 32,
+                                          offset: Offset(0, 16),
+                                        ),
+                                      ],
+                                    )
+                                  : null,
+                              child: DefaultTextStyle(
+                                style: const TextStyle(
+                                  fontFamily: 'Arial',
+                                  fontSize: 16,
+                                  height: 1.4,
+                                  color: AuthStyle.foreground,
+                                ),
+                                child: child,
+                              ),
                             ),
-                            child: child,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }

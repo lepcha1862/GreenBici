@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'auth_style.dart';
+
 class AuthActionButton extends StatelessWidget {
   const AuthActionButton({
     super.key,
@@ -10,37 +12,43 @@ class AuthActionButton extends StatelessWidget {
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(20),
-      gradient: const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF6EA918), Color(0xFF447909)],
+  Widget build(BuildContext context) => FilledButton(
+    style: FilledButton.styleFrom(
+      backgroundColor: AuthStyle.primary,
+      foregroundColor: Colors.white,
+      minimumSize: const Size(double.infinity, 56),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AuthStyle.radius),
+      ),
+      textStyle: const TextStyle(
+        fontFamily: 'Arial',
+        fontSize: 17,
+        fontWeight: FontWeight.w700,
+        height: 1.3,
       ),
     ),
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(
-        minHeight: 58,
-        minWidth: double.infinity,
-      ),
-      child: TextButton(
-        style: TextButton.styleFrom(
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          textStyle: const TextStyle(fontFamily: 'Arial', fontSize: 22),
-        ),
-        onPressed: onPressed,
-        child: Text(label),
-      ),
-    ),
+    onPressed: onPressed,
+    child: Text(label, textAlign: TextAlign.center),
   );
 }
 
 void showAuthMessage(BuildContext context, String message) {
+  final media = MediaQuery.of(context);
+  final visibleHeight =
+      (media.size.height - media.viewInsets.bottom - media.padding.vertical)
+          .clamp(0.0, double.infinity);
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
+    ..showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF23362D),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: visibleHeight * .4),
+          child: SingleChildScrollView(
+            child: Text(message, style: const TextStyle(color: Colors.white)),
+          ),
+        ),
+      ),
+    );
 }

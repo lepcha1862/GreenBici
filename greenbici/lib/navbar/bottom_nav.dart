@@ -51,12 +51,15 @@ class BottomNav extends StatelessWidget {
                     final selected = index == selectedIndex;
                     final item = _items[index];
                     final color = selected
-                        ? AppStyle.green
-                        : const Color(0xFF808580);
+                        ? AppStyle.darkGreen
+                        : AppStyle.muted;
                     return Expanded(
                       child: Semantics(
                         selected: selected,
                         button: true,
+                        label: item.$2,
+                        excludeSemantics: true,
+                        onTap: () => onSelected(index),
                         child: Tooltip(
                           message: item.$2,
                           child: Material(
@@ -65,6 +68,9 @@ class BottomNav extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                               onTap: () => onSelected(index),
                               child: AnimatedContainer(
+                                constraints: const BoxConstraints(
+                                  minHeight: 48,
+                                ),
                                 duration:
                                     MediaQuery.disableAnimationsOf(context)
                                     ? Duration.zero

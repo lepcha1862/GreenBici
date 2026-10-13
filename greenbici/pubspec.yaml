@@ -66,6 +66,8 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/branding/greenbici_logo.png
+    - assets/branding/greenbici_app_icon.png
     - assets/images/home/ride_hero.jpg
     - assets/images/home/central_park.jpg
     - assets/images/home/riverside.jpg

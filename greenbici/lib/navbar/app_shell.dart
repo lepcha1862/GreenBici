@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../home/home_page.dart';
+import '../notifications/notification_page.dart';
+import '../profile/profile_page.dart';
+import '../ride/ride_page.dart';
 import '../station/station_page.dart';
 import '../theme/app_style.dart';
 import 'bottom_nav.dart';
@@ -60,9 +63,18 @@ class _AppShellState extends State<AppShell> {
                 ? widget.stationBuilder?.call(context) ?? const StationPage()
                 : const SizedBox.shrink(),
           ),
-          const SizedBox.expand(key: ValueKey('rides-placeholder')),
-          const SizedBox.expand(key: ValueKey('notifications-placeholder')),
-          const SizedBox.expand(key: ValueKey('profile-placeholder')),
+          TickerMode(enabled: _selectedIndex == 2, child: const RidePage()),
+          TickerMode(
+            enabled: _selectedIndex == 3,
+            child: const KeyedSubtree(
+              key: ValueKey('notifications-placeholder'),
+              child: NotificationPage(),
+            ),
+          ),
+          TickerMode(
+            enabled: _selectedIndex == 4,
+            child: ProfilePage(displayName: widget.displayName),
+          ),
         ],
       ),
       bottomNavigationBar: BottomNav(

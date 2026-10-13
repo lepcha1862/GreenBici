@@ -7,6 +7,7 @@ import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../navbar/top_nav.dart';
+import '../demo/demo_data.dart';
 import '../theme/app_style.dart';
 import 'models/bicycle_station.dart';
 import 'services/location_service.dart';
@@ -49,6 +50,8 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
         StationController(
           locationService: DeviceLocationService(),
           repository: _ownedRepository = OverpassStationRepository(),
+          fallbackLocation: DemoData.focus,
+          fallbackStations: DemoData.stations,
         );
     _search.text = _controller.query;
     unawaited(_controller.locate());
@@ -146,7 +149,9 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
                     TopNav(
                       title: 'Nearby Stations',
                       subtitle: _controller.location != null
-                          ? 'Current location'
+                          ? (_controller.location == DemoData.focus
+                                ? 'Demo focus · ${DemoData.focusLabel}'
+                                : 'Current location')
                           : _controller.locating
                           ? 'Finding your location'
                           : 'Location unavailable',
@@ -170,7 +175,13 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
                 children: [
                   header,
                   SizedBox(height: 300, child: _mapOrLocationMessage(0)),
-                  if (_controller.location != null) _results(),
+                  if (_controller.location != null)
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 680),
+                        child: _results(),
+                      ),
+                    ),
                   if (_controller.location != null) _attribution(),
                 ],
               ),
@@ -393,8 +404,14 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
       context: context,
       showDragHandle: true,
       useSafeArea: true,
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxWidth: 680,
+        maxHeight: MediaQuery.sizeOf(context).height * .8,
+      ),
       builder: (context) => PointerInterceptor(
         child: ListView.separated(
+          shrinkWrap: true,
           padding: const EdgeInsets.only(bottom: 20),
           itemCount: stations.length,
           separatorBuilder: (_, _) => const Divider(height: 1),

@@ -3,6 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../home_style.dart';
+
 /// The home page's swipeable introduction to riding with GreenBici.
 class HeroSlider extends StatefulWidget {
   const HeroSlider({super.key, required this.onStartRide});
@@ -215,8 +217,8 @@ class _HeroSliderState extends State<HeroSlider> with WidgetsBindingObserver {
                                   onTap: () => _goToPage(index),
                                   radius: 22,
                                   child: SizedBox(
-                                    width: 40,
-                                    height: 44,
+                                    width: 48,
+                                    height: 48,
                                     child: Center(
                                       child: AnimatedContainer(
                                         duration: _reduceMotion
@@ -348,7 +350,7 @@ class _HeroMetrics {
       math.max(168.0, labelWidth + 72),
     );
     final buttonHeight = math.max(
-      46.0,
+      48.0,
       measure(
             'Start a ride',
             buttonStyle,
@@ -443,7 +445,7 @@ class _HeroPanel extends StatelessWidget {
                 child: FilledButton(
                   onPressed: onStartRide,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF72AD43),
+                    backgroundColor: HomeStyle.darkGreen,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,

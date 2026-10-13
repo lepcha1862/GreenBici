@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:greenbici/main.dart';
+import 'package:greenbici/navbar/app_shell.dart';
 import 'package:greenbici/signin_signup/sign_up.dart';
 
 void main() {
@@ -73,11 +75,116 @@ void main() {
     await tester.pumpAndSettle();
     tester.view.viewInsets = const FakeViewPadding(bottom: 240);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byType(TextField).last);
+    await tester.enterText(find.byType(TextField).last, 'confirmation');
+    await tester.pumpAndSettle();
+    expect(
+      tester.getBottomRight(find.byType(TextField).last).dy,
+      lessThanOrEqualTo(480 - 240),
+    );
     await tester.ensureVisible(find.text('Sign In'));
     await tester.ensureVisible(find.text('Sign In'));
     await tester.tap(find.text('Sign In'));
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Keyboard Next moves focus and Done signs in', (tester) async {
+    await tester.pumpWidget(const MyApp());
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.first, 'Sam Rivera');
+    await tester.testTextInput.receiveAction(TextInputAction.next);
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<EditableText>(find.byType(EditableText).last)
+          .focusNode
+          .hasFocus,
+      isTrue,
+    );
+    await tester.enterText(fields.last, 'secret');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.byType(AppShell), findsOneWidget);
+    expect(
+      tester.widget<AppShell>(find.byType(AppShell)).displayName,
+      'Sam Rivera',
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('Signup validates missing, invalid, and matching field values', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: SignUpPage()));
+    await tester.ensureVisible(find.text('Sign Up'));
+    await tester.tap(find.text('Sign Up'));
+    await tester.pumpAndSettle();
+    expect(find.text('Complete all four fields.'), findsOneWidget);
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'Sam Rivera');
+    await tester.enterText(fields.at(1), 'invalid-email');
+    await tester.enterText(fields.at(2), 'password123');
+    await tester.enterText(fields.at(3), 'password123');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('Enter a valid email address.'), findsOneWidget);
+
+    await tester.enterText(fields.at(1), 'sam@example.com');
+    await tester.enterText(fields.at(3), 'different');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('Your passwords do not match.'), findsOneWidget);
+
+    await tester.enterText(fields.at(3), 'password123');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Sign-up is not connected to an authentication service yet.'),
+      findsOneWidget,
+    );
+    expect(find.byType(SignUpPage), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Auth actions have accessible touch sizes', (tester) async {
+    await tester.pumpWidget(const MyApp());
+    for (final control in [
+      find.byTooltip('Show password'),
+      find.widgetWithText(TextButton, 'Forgot Password?'),
+      find.widgetWithText(FilledButton, 'Sign In'),
+      find.widgetWithText(OutlinedButton, 'Sign in with Google'),
+      find.widgetWithText(TextButton, 'Sign Up'),
+    ]) {
+      final size = tester.getSize(control);
+      expect(size.width, greaterThanOrEqualTo(48));
+      expect(size.height, greaterThanOrEqualTo(48));
+    }
+  });
+
+  testWidgets('Large-text validation stays within a small keyboard viewport', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 480);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpWidget(const MaterialApp(home: SignUpPage()));
+    tester.view.viewInsets = const FakeViewPadding(bottom: 240);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byType(TextField).last);
+    await tester.enterText(find.byType(TextField).last, 'secret');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('Complete all four fields.'), findsOneWidget);
+    expect(tester.getSize(find.byType(SnackBar)).height, lessThan(240));
     expect(tester.takeException(), isNull);
   });
   for (final size in [
@@ -110,6 +217,11 @@ void main() {
         expect(tester.takeException(), isNull);
         await tester.ensureVisible(find.byType(TextField).last);
         await tester.enterText(find.byType(TextField).last, 'secret');
+        final label = tester.renderObject<RenderParagraph>(
+          find.text('Confirm Password'),
+        );
+        expect(label.didExceedMaxLines, isFalse);
+        expect(label.size.width, lessThanOrEqualTo(fieldWidth));
         await tester.ensureVisible(find.text('Sign In'));
         await tester.tap(find.text('Sign In'));
         await tester.pumpAndSettle();

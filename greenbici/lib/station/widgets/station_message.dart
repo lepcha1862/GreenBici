@@ -22,38 +22,54 @@ class StationMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Semantics(
-        liveRegion: true,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (loading)
-              const SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(strokeWidth: 3),
-              )
-            else
-              Icon(icon, size: 36, color: AppStyle.green),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppStyle.muted),
-            ),
-            if (actionLabel != null && onAction != null) ...[
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 460),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Semantics(
+          liveRegion: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (loading)
+                const SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                )
+              else
+                Icon(icon, size: 36, color: AppStyle.green),
               const SizedBox(height: 12),
-              OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              if (message.isNotEmpty) const SizedBox(height: 6),
+              if (message.isNotEmpty)
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppStyle.muted),
+                ),
+              if (actionLabel != null && onAction != null) ...[
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: onAction,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppStyle.darkGreen,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(48, 48),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                  ),
+                  child: Text(actionLabel!, textAlign: TextAlign.center),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     ),

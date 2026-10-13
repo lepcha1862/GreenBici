@@ -279,11 +279,13 @@ void main() {
 
   for (final size in [
     const Size(240, 320),
+    const Size(280, 640),
     const Size(390, 844),
+    const Size(660, 900),
     const Size(844, 390),
     const Size(1440, 900),
   ]) {
-    for (final textScale in [1.0, 3.0]) {
+    for (final textScale in [1.0, 2.0, 3.0]) {
       testWidgets('Station fits $size at text scale $textScale', (
         tester,
       ) async {
@@ -321,6 +323,112 @@ void main() {
         await _unmount(tester);
       });
     }
+  }
+
+  testWidgets('Large-text station picker stays usable on a narrow screen', (
+    tester,
+  ) async {
+    final harness = _Harness();
+    await _pumpPage(tester, harness, size: const Size(240, 320), textScale: 3);
+    final changeStation = find.textContaining('Change station');
+    await tester.ensureVisible(changeStation);
+    await tester.pumpAndSettle();
+    await tester.tap(changeStation);
+    await tester.pumpAndSettle();
+    final riverside = find.widgetWithText(ListTile, _riversideStation.name);
+    await tester.ensureVisible(riverside);
+    await tester.pumpAndSettle();
+    await tester.tap(riverside);
+    await tester.pumpAndSettle();
+    expect(harness.map!.selectedStation!.id, _riversideStation.id);
+    expect(harness.map!.interactionBlocked, isFalse);
+    await tester.ensureVisible(find.text('Get Directions'));
+    await tester.pumpAndSettle();
+    expect(find.text('Get Directions').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _unmount(tester);
+  });
+
+  testWidgets(
+    'Orientation and keyboard preserve station selection and search',
+    (tester) async {
+      final harness = _Harness();
+      await _pumpPage(tester, harness);
+      harness.map!.onSelected(_riversideStation);
+      await tester.tap(find.byTooltip('Search stations'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Riverside');
+      await tester.pumpAndSettle();
+
+      tester.view.physicalSize = const Size(844, 390);
+      tester.view.viewInsets = const FakeViewPadding(bottom: 140);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+      expect(harness.map!.selectedStation!.id, _riversideStation.id);
+      expect(harness.controller.query, 'Riverside');
+      expect(harness.location.permissionRequests, [true]);
+      await tester.ensureVisible(find.text('Get Directions'));
+      await tester.pumpAndSettle();
+      expect(find.text('Get Directions').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await _unmount(tester);
+    },
+  );
+
+  for (final textScale in [1.0, 2.0, 3.0]) {
+    testWidgets('Live counts and long names fit narrow details at $textScale', (
+      tester,
+    ) async {
+      const longStation = BicycleStation(
+        id: 'long-name',
+        name: 'University and Botanical Garden Bicycle Station',
+        latitude: 40.781,
+        longitude: -73.97,
+        operatorName: 'City Bicycle Sharing Network',
+        bikesAvailable: 128,
+        docksAvailable: 0,
+      );
+      tester.view.physicalSize = const Size(240, 320);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      var directionRequests = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppStyle.theme,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(textScale)),
+            child: child!,
+          ),
+          home: Scaffold(
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(18),
+              child: StationDetails(
+                station: longStation,
+                userLocation: _userLocation,
+                onDirections: () => directionRequests++,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('128'), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
+      expect(find.textContaining('Live availability'), findsNothing);
+      final directions = find.ancestor(
+        of: find.text('Get Directions'),
+        matching: find.byWidgetPredicate((widget) => widget is FilledButton),
+      );
+      await tester.ensureVisible(directions);
+      await tester.pumpAndSettle();
+      expect(tester.getSize(directions).height, greaterThanOrEqualTo(48));
+      await tester.tap(directions);
+      expect(directionRequests, 1);
+      expect(tester.takeException(), isNull);
+      await _unmount(tester);
+    });
   }
 }
 

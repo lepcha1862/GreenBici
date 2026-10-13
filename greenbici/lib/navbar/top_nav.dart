@@ -14,7 +14,8 @@ class TopNav extends StatelessWidget {
     this.statusColor,
     this.searchController,
     this.onSearchChanged,
-    required this.onSearch,
+    this.showSearch = true,
+    this.onSearch,
   });
 
   final String? displayName;
@@ -24,13 +25,14 @@ class TopNav extends StatelessWidget {
   final Color? statusColor;
   final TextEditingController? searchController;
   final ValueChanged<String>? onSearchChanged;
-  final VoidCallback onSearch;
+  final bool showSearch;
+  final VoidCallback? onSearch;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final compact =
-          constraints.maxWidth < 420 ||
+          constraints.maxWidth < (showSearch ? 420 : 320) ||
           MediaQuery.textScalerOf(context).scale(14) > 21;
       final heading = title == null
           ? Text.rich(
@@ -49,18 +51,21 @@ class TopNav extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  title!,
-                  style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w700,
+                Semantics(
+                  header: true,
+                  child: Text(
+                    title!,
+                    style: const TextStyle(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(subtitleIcon, size: 20, color: AppStyle.green),
+                      Icon(subtitleIcon, size: 20, color: AppStyle.darkGreen),
                       const SizedBox(width: 5),
                       Flexible(
                         child: Text(
@@ -93,12 +98,14 @@ class TopNav extends StatelessWidget {
                   Expanded(flex: 2, child: heading),
                 ] else
                   const Spacer(),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: 'Search stations',
-                  onPressed: onSearch,
-                  icon: const Icon(Icons.search_rounded, size: 31),
-                ),
+                if (showSearch) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Search stations',
+                    onPressed: onSearch,
+                    icon: const Icon(Icons.search_rounded, size: 31),
+                  ),
+                ],
               ],
             ),
             if (compact) ...[const SizedBox(height: 6), heading],
@@ -144,48 +151,10 @@ class _Wordmark extends StatelessWidget {
     label: 'GreenBici',
     image: true,
     child: ExcludeSemantics(
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
+      child: Image.asset(
+        'assets/branding/greenbici_logo.png',
+        fit: BoxFit.contain,
         alignment: Alignment.centerLeft,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Green',
-                      style: TextStyle(
-                        color: AppStyle.darkGreen,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    TextSpan(
-                      text: 'Bici',
-                      style: TextStyle(color: AppStyle.green),
-                    ),
-                  ],
-                ),
-                textScaler: TextScaler.noScaling,
-                style: TextStyle(
-                  fontSize: 27,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -1.4,
-                ),
-              ),
-            ),
-            Positioned(
-              right: -1,
-              top: -1,
-              child: Transform.rotate(
-                angle: -.5,
-                child: const Icon(Icons.eco, size: 14, color: AppStyle.green),
-              ),
-            ),
-          ],
-        ),
       ),
     ),
   );

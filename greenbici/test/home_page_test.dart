@@ -6,6 +6,7 @@ import 'package:greenbici/home/widgets/hero_slider.dart';
 import 'package:greenbici/navbar/app_shell.dart';
 import 'package:greenbici/navbar/bottom_nav.dart';
 import 'package:greenbici/navbar/top_nav.dart';
+import 'package:greenbici/ride/ride_page.dart';
 import 'package:greenbici/main.dart';
 import 'package:greenbici/signin_signup/signin_page.dart';
 
@@ -114,14 +115,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Rides'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('rides-placeholder')), findsOneWidget);
+    expect(find.byType(RidePage), findsOneWidget);
+    _expectHeadingInBody(tester, 'Available Bikes');
     expect(find.byType(HomePage), findsNothing);
     expect(tester.widget<BottomNav>(find.byType(BottomNav)).selectedIndex, 2);
 
     await tester.tap(find.byTooltip('Stations'));
     await tester.pumpAndSettle();
     _expectHeadingInBody(tester, 'Nearby Stations');
-    for (final destination in ['Rides', 'Notifications', 'Profile']) {
+    for (final destination in ['Notifications', 'Profile']) {
       await tester.tap(find.byTooltip(destination));
       await tester.pumpAndSettle();
       expect(
@@ -132,6 +134,26 @@ void main() {
       expect(find.byType(TopNav), findsNothing);
       expect(find.byType(BottomNav).hitTestable(), findsOneWidget);
     }
+    expect(tester.takeException(), isNull);
+    await _unmount(tester);
+  });
+
+  testWidgets('Start Ride opens bikes and the shared navigation stays active', (
+    tester,
+  ) async {
+    _configureView(tester, const Size(390, 844));
+    await tester.pumpWidget(_homeApp(reducedMotion: true));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Start Ride'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start Ride'));
+    await tester.pumpAndSettle();
+    expect(find.byType(RidePage), findsOneWidget);
+    expect(tester.widget<BottomNav>(find.byType(BottomNav)).selectedIndex, 2);
+    expect(find.byTooltip('Search stations'), findsNothing);
+    await tester.tap(find.byTooltip('Home'));
+    await tester.pumpAndSettle();
+    expect(find.byType(HomePage), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _unmount(tester);
   });

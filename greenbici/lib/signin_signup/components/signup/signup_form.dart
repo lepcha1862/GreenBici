@@ -24,6 +24,7 @@ class _SignUpFormState extends State<SignUpForm> {
   }
 
   void _submit() {
+    FocusManager.instance.primaryFocus?.unfocus();
     String message;
     if ([
       _username,
@@ -52,8 +53,9 @@ class _SignUpFormState extends State<SignUpForm> {
           hint: 'Enter your full name',
           controller: _username,
           autofillHints: const [AutofillHints.name],
+          textCapitalization: TextCapitalization.words,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         AuthInput(
           label: 'Email',
           hint: 'Enter your email',
@@ -61,7 +63,7 @@ class _SignUpFormState extends State<SignUpForm> {
           email: true,
           autofillHints: const [AutofillHints.email],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         AuthInput(
           label: 'Password',
           hint: 'Enter your password',
@@ -69,7 +71,7 @@ class _SignUpFormState extends State<SignUpForm> {
           password: true,
           autofillHints: const [AutofillHints.newPassword],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         AuthInput(
           label: 'Confirm Password',
           hint: 'Confirm your password',
@@ -77,8 +79,9 @@ class _SignUpFormState extends State<SignUpForm> {
           password: true,
           last: true,
           autofillHints: const [AutofillHints.newPassword],
+          onSubmitted: _submit,
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 24),
         AuthActionButton(label: 'Sign Up', onPressed: _submit),
       ],
     ),

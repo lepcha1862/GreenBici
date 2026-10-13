@@ -7,10 +7,17 @@ import 'services/station_repository.dart';
 
 /// Owns location and station state independently of the map platform view.
 class StationController extends ChangeNotifier {
-  StationController({required this.locationService, required this.repository});
+  StationController({
+    required this.locationService,
+    required this.repository,
+    this.fallbackLocation,
+    this.fallbackStations = const [],
+  });
 
   final LocationService locationService;
   final StationRepository repository;
+  final GeoPoint? fallbackLocation;
+  final List<BicycleStation> fallbackStations;
   GeoPoint? location;
   LocationFailure? locationFailure;
   bool locating = false;
@@ -69,11 +76,19 @@ class StationController extends ChangeNotifier {
       await _loadStations(generation);
     } on LocationFailure catch (failure) {
       if (!_isCurrent(generation)) return;
+      if (fallbackLocation != null && fallbackStations.isNotEmpty) {
+        _applyFallback();
+        return;
+      }
       locationFailure = failure;
       location = null;
       _stations = const [];
     } catch (_) {
       if (!_isCurrent(generation)) return;
+      if (fallbackLocation != null && fallbackStations.isNotEmpty) {
+        _applyFallback();
+        return;
+      }
       locationFailure = const LocationFailure(LocationFailureKind.unavailable);
       location = null;
       _stations = const [];
@@ -83,6 +98,14 @@ class StationController extends ChangeNotifier {
         _notify();
       }
     }
+  }
+
+  void _applyFallback() {
+    location = fallbackLocation;
+    _stations = [...fallbackStations];
+    locationFailure = null;
+    stationLoadFailed = false;
+    cameraRevision++;
   }
 
   Future<void> refreshStations() async {

@@ -144,7 +144,7 @@ class _ActionCard extends StatelessWidget {
                 const Icon(
                   Icons.chevron_right_rounded,
                   size: 18,
-                  color: HomeStyle.border,
+                  color: HomeStyle.muted,
                 ),
               ],
             ),
