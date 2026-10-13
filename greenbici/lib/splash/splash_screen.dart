@@ -263,53 +263,67 @@ class _AnimatedLoadingBar extends StatelessWidget {
         liveRegion: true,
         child: Column(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: Container(
-                height: 12,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0x3372AD43), Color(0x33249EBD)],
-                  ),
-                  border: Border.all(
-                    color: AppStyle.darkGreen.withValues(alpha: .28),
-                  ),
-                ),
-                alignment: Alignment.centerLeft,
-                child: FractionallySizedBox(
-                  widthFactor: safeValue,
-                  child: const DecoratedBox(
-                    key: ValueKey('splash-progress-fill'),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppStyle.darkGreen,
-                          AppStyle.green,
-                          AppStyle.blue,
-                        ],
-                        stops: [0, .55, 1],
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      key: const ValueKey('splash-progress-track'),
+                      height: 12,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0x3372AD43), Color(0x33249EBD)],
+                        ),
+                        border: Border.all(
+                          color: AppStyle.darkGreen.withValues(alpha: .28),
+                        ),
                       ),
-                      boxShadow: [
-                        BoxShadow(color: Color(0x8072AD43), blurRadius: 12),
-                        BoxShadow(color: Color(0x66249EBD), blurRadius: 16),
-                      ],
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: safeValue,
+                        child: const DecoratedBox(
+                          key: ValueKey('splash-progress-fill'),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppStyle.darkGreen,
+                                AppStyle.green,
+                                AppStyle.blue,
+                              ],
+                              stops: [0, .55, 1],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x8072AD43),
+                                blurRadius: 12,
+                              ),
+                              BoxShadow(
+                                color: Color(0x66249EBD),
+                                blurRadius: 16,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Text(
+                  '$percentage%',
+                  key: const ValueKey('splash-percentage'),
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                    color: Color(0xFF194B34),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 14),
-            Text(
-              '$percentage%',
-              key: const ValueKey('splash-percentage'),
-              style: const TextStyle(
-                color: Color(0xFF194B34),
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.6,
-              ),
-            ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 10),
             Text(
               error != null
                   ? 'Startup paused'

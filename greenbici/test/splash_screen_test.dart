@@ -41,6 +41,13 @@ void main() {
       Color(0xFF249EBD),
     ]);
     expect(colors, isNot(contains(Colors.white)));
+    final trackBounds = tester.getRect(
+      find.byKey(const ValueKey('splash-progress-track')),
+    );
+    final percentageBounds = tester.getRect(
+      find.byKey(const ValueKey('splash-percentage')),
+    );
+    expect(percentageBounds.left, greaterThan(trackBounds.right));
 
     loader.complete();
     await tester.pump();
