@@ -41,6 +41,11 @@ void main() {
       Color(0xFF249EBD),
     ]);
     expect(colors, isNot(contains(Colors.white)));
+    final sweep = find.byKey(const ValueKey('splash-progress-sweep'));
+    expect(sweep, findsOneWidget);
+    final firstSweepPosition = tester.getTopLeft(sweep).dx;
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.getTopLeft(sweep).dx, greaterThan(firstSweepPosition));
     final trackBounds = tester.getRect(
       find.byKey(const ValueKey('splash-progress-track')),
     );

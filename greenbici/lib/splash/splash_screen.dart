@@ -282,28 +282,8 @@ class _AnimatedLoadingBar extends StatelessWidget {
                       alignment: Alignment.centerLeft,
                       child: FractionallySizedBox(
                         widthFactor: safeValue,
-                        child: const DecoratedBox(
-                          key: ValueKey('splash-progress-fill'),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppStyle.darkGreen,
-                                AppStyle.green,
-                                AppStyle.blue,
-                              ],
-                              stops: [0, .55, 1],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0x8072AD43),
-                                blurRadius: 12,
-                              ),
-                              BoxShadow(
-                                color: Color(0x66249EBD),
-                                blurRadius: 16,
-                              ),
-                            ],
-                          ),
+                        child: _FlowingProgressFill(
+                          animate: !reduceMotion && error == null,
                         ),
                       ),
                     ),
@@ -338,6 +318,102 @@ class _AnimatedLoadingBar extends StatelessWidget {
             ),
           ],
         ),
+      );
+    },
+  );
+}
+
+class _FlowingProgressFill extends StatefulWidget {
+  const _FlowingProgressFill({required this.animate});
+
+  final bool animate;
+
+  @override
+  State<_FlowingProgressFill> createState() => _FlowingProgressFillState();
+}
+
+class _FlowingProgressFillState extends State<_FlowingProgressFill>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1300),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animate) _controller.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FlowingProgressFill oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animate == widget.animate) return;
+    if (widget.animate) {
+      _controller.repeat();
+    } else {
+      _controller.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final sweepWidth = math.max(28.0, constraints.maxWidth * .34);
+      return Stack(
+        fit: StackFit.expand,
+        clipBehavior: Clip.hardEdge,
+        children: [
+          const DecoratedBox(
+            key: ValueKey('splash-progress-fill'),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppStyle.darkGreen, AppStyle.green, AppStyle.blue],
+                stops: [0, .55, 1],
+              ),
+              boxShadow: [
+                BoxShadow(color: Color(0x8072AD43), blurRadius: 12),
+                BoxShadow(color: Color(0x66249EBD), blurRadius: 16),
+              ],
+            ),
+          ),
+          if (widget.animate)
+            AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                final position = Curves.easeInOutCubic.transform(
+                  _controller.value,
+                );
+                return Positioned(
+                  left:
+                      (constraints.maxWidth + sweepWidth) * position -
+                      sweepWidth,
+                  top: 0,
+                  bottom: 0,
+                  width: sweepWidth,
+                  child: child!,
+                );
+              },
+              child: const DecoratedBox(
+                key: ValueKey('splash-progress-sweep'),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0x0072AD43),
+                      Color(0xFFB7E85D),
+                      Color(0x0072AD43),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       );
     },
   );
