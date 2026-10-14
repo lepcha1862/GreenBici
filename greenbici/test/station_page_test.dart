@@ -152,6 +152,14 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('location-permission-prompt')), findsOne);
+    final mapBounds = tester.getRect(
+      find.byKey(const ValueKey('cst-offline-fallback-map')),
+    );
+    final centerLabelBounds = tester.getRect(
+      find.byKey(const ValueKey('cst-map-center-label')),
+    );
+    expect(centerLabelBounds.left, greaterThanOrEqualTo(mapBounds.left));
+    expect(centerLabelBounds.right, lessThanOrEqualTo(mapBounds.right));
     expect(tester.takeException(), isNull);
     await _unmount(tester);
   });

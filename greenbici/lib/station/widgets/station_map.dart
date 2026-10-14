@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -55,9 +56,14 @@ class StationMap extends StatefulWidget {
 }
 
 class _StationMapState extends State<StationMap> {
+  static const _webStationSourceId = 'greenbici-stations';
+  static const _webStationLayerId = 'greenbici-station-markers';
+  static const _webStationInteractionId = 'greenbici-station-taps';
+
   final ViewportController _viewportController = ViewportController();
   MapboxMap? _map;
   PointAnnotationManager? _pointAnnotations;
+  GeoJsonSource? _webStationSource;
   Cancelable? _annotationTaps;
   late Future<void> _ready;
   Uint8List? _pin;
@@ -154,7 +160,25 @@ class _StationMapState extends State<StationMap> {
     _move(widget.location, zoom: _locationZoom);
 
     // Annotation managers are currently a native-only Mapbox API.
-    if (kIsWeb) return;
+    if (kIsWeb) {
+      map.addInteraction(
+        TapInteraction(FeaturesetDescriptor(layerId: _webStationLayerId), (
+          feature,
+          _,
+        ) {
+          final stationId = feature.properties['stationId'] as String?;
+          if (stationId == null) return;
+          for (final station in widget.stations) {
+            if (station.id == stationId) {
+              widget.onSelected(station);
+              return;
+            }
+          }
+        }, radius: 10),
+        interactionID: _webStationInteractionId,
+      );
+      return;
+    }
     try {
       final manager = await map.annotations.createPointAnnotationManager();
       if (!mounted || !identical(_map, map)) return;
@@ -173,6 +197,11 @@ class _StationMapState extends State<StationMap> {
   }
 
   Future<void> _syncMarkers() async {
+    if (kIsWeb) {
+      await _webStationSource?.updateGeoJSON(_webMarkersGeoJson());
+      return;
+    }
+
     final manager = _pointAnnotations;
     final pin = _pin;
     final selectedPin = _selectedPin;
@@ -218,6 +247,97 @@ class _StationMapState extends State<StationMap> {
     }
   }
 
+  Future<void> _styleLoaded(StyleLoadedEventData _) async {
+    final map = _map;
+    if (!kIsWeb || map == null) return;
+    try {
+      final source = GeoJsonSource(
+        id: _webStationSourceId,
+        data: _webMarkersGeoJson(),
+        dynamicData: true,
+      );
+      await map.addSource(source);
+      await map.addLayer(
+        CircleLayer(
+          id: _webStationLayerId,
+          sourceId: _webStationSourceId,
+          circleRadiusExpression: const [
+            'case',
+            [
+              'boolean',
+              ['get', 'selected'],
+              false,
+            ],
+            14.0,
+            11.0,
+          ],
+          circleColorExpression: const [
+            'case',
+            [
+              'boolean',
+              ['get', 'selected'],
+              false,
+            ],
+            '#249EBD',
+            '#347C3D',
+          ],
+          circleStrokeColor: Colors.white.toARGB32(),
+          circleStrokeWidth: 3,
+          circleSortKeyExpression: const [
+            'case',
+            [
+              'boolean',
+              ['get', 'selected'],
+              false,
+            ],
+            2.0,
+            1.0,
+          ],
+        ),
+      );
+      if (!mounted || !identical(_map, map)) return;
+      _webStationSource = source;
+    } catch (error) {
+      debugPrint('Mapbox web station markers could not be created: $error');
+    }
+  }
+
+  String _webMarkersGeoJson() {
+    final features = <Map<String, Object?>>[
+      for (var index = 0; index < widget.stations.length; index++)
+        {
+          'type': 'Feature',
+          'id': index + 1,
+          'properties': {
+            'stationId': widget.stations[index].id,
+            'selected': widget.stations[index].id == widget.selectedStation?.id,
+          },
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [
+              widget.stations[index].location.longitude,
+              widget.stations[index].location.latitude,
+            ],
+          },
+        },
+    ];
+    if (widget.isFallback &&
+        !widget.stations.any(
+          (station) => station.location == widget.location,
+        )) {
+      features.add({
+        'type': 'Feature',
+        'id': features.length + 1,
+        'properties': {'selected': true},
+        'geometry': {
+          'type': 'Point',
+          'coordinates': [widget.location.longitude, widget.location.latitude],
+        },
+      });
+    }
+    return jsonEncode({'type': 'FeatureCollection', 'features': features});
+  }
+
   void _mapLoaded() {
     _mapLoadTimeout?.cancel();
     _mapLoadTimeout = null;
@@ -231,6 +351,7 @@ class _StationMapState extends State<StationMap> {
     setState(() {
       _map = null;
       _pointAnnotations = null;
+      _webStationSource = null;
       _annotationTaps = null;
       _liveMapFailed = true;
     });
@@ -276,6 +397,7 @@ class _StationMapState extends State<StationMap> {
                 ),
                 viewportController: _viewportController,
                 onMapCreated: _onMapCreated,
+                onStyleLoadedListener: _styleLoaded,
                 onMapLoadedListener: (_) => _mapLoaded(),
                 onMapLoadErrorListener: (_) =>
                     _useOfflineFallback('Mapbox reported a loading error.'),
@@ -451,45 +573,50 @@ class _CstOfflineMap extends StatelessWidget {
               child: CustomPaint(painter: _CstMapPainter()),
             ),
             Positioned(
-              left: math.max(14, width * .5 - 122),
+              left: 14,
+              right: 14,
               top: math.max(88, height * .48 + 24),
               child: IgnorePointer(
-                child: Material(
-                  color: Colors.white.withValues(alpha: .92),
-                  borderRadius: BorderRadius.circular(10),
-                  elevation: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 6,
-                    ),
-                    child: SizedBox(
-                      width: 226,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            centerLabel ?? 'College of Science and Technology',
-                            maxLines: 2,
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppStyle.ink,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          if (centerLabel == null)
-                            const Text(
-                              'Rinchending, Phuentsholing, Bhutan',
-                              maxLines: 1,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 244),
+                    child: Material(
+                      key: const ValueKey('cst-map-center-label'),
+                      color: Colors.white.withValues(alpha: .92),
+                      borderRadius: BorderRadius.circular(10),
+                      elevation: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 6,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              centerLabel ??
+                                  'College of Science and Technology',
+                              maxLines: 2,
+                              textAlign: TextAlign.center,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: AppStyle.muted,
-                                fontSize: 10,
+                              style: const TextStyle(
+                                color: AppStyle.ink,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                        ],
+                            if (centerLabel == null)
+                              const Text(
+                                'Rinchending, Phuentsholing, Bhutan',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: AppStyle.muted,
+                                  fontSize: 10,
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

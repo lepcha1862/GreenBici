@@ -15,7 +15,7 @@ abstract final class MapboxConfiguration {
   static bool get isConfigured => accessToken.trim().isNotEmpty;
 
   static void prepare() {
-    if (isConfigured) {
+    if (isSupported && isConfigured) {
       MapboxOptions.setAccessToken(accessToken.trim());
     }
   }
