@@ -1,12 +1,12 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../theme/app_style.dart';
 
 /// Draws a reusable bike pin without relying on remote assets or fake counts.
-Future<BitmapDescriptor> createStationMarker({required bool selected}) async {
+Future<Uint8List> createStationMarker({required bool selected}) async {
   const ratio = 3.0;
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder)..scale(ratio);
@@ -57,9 +57,5 @@ Future<BitmapDescriptor> createStationMarker({required bool selected}) async {
   final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
   image.dispose();
   picture.dispose();
-  return BitmapDescriptor.bytes(
-    bytes!.buffer.asUint8List(),
-    width: 52,
-    height: 68,
-  );
+  return bytes!.buffer.asUint8List();
 }

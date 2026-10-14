@@ -10,6 +10,21 @@ abstract interface class StationRepository {
   Future<List<BicycleStation>> nearby(GeoPoint location);
 }
 
+/// Returns the bundled preview stations without making a network request.
+///
+/// This keeps the map deterministic while the operator station API is not yet
+/// connected. The location argument is intentionally ignored; marker
+/// coordinates come from the supplied demo stations.
+class StaticStationRepository implements StationRepository {
+  const StaticStationRepository(this.stations);
+
+  final List<BicycleStation> stations;
+
+  @override
+  Future<List<BicycleStation>> nearby(GeoPoint location) async =>
+      List<BicycleStation>.unmodifiable(stations);
+}
+
 class StationRepositoryException implements Exception {
   const StationRepositoryException(this.message);
 

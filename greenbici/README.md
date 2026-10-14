@@ -8,24 +8,16 @@ Run commands from this `greenbici` directory. Use a Flutter SDK compatible with 
 
 ```sh
 flutter pub get
-flutter run --dart-define=GOOGLE_MAPS_API_KEY=YOUR_PLATFORM_KEY
+flutter run --dart-define-from-file=config/maps.local.json
 ```
 
-The app runs without a Maps key: after location permission is granted, Stations still searches for nearby stations and displays its results, with a map-unavailable message in place of the map.
+The app runs without a Maps token: Stations keeps the always-visible CST fallback map and bundled demo markers in place of the live Mapbox map.
 
-## Google Maps configuration
+## Mapbox configuration
 
-Create a Google Cloud project with billing enabled and enable the API for the target platform. Use a separate restricted key per platform, supplied through the same `GOOGLE_MAPS_API_KEY` setting. See the [Google Maps Flutter setup](https://developers.google.com/maps/flutter-package/config) and [API key restrictions](https://developers.google.com/maps/api-security-best-practices).
+Create a public Mapbox access token and supply it through `MAPBOX_ACCESS_TOKEN`. See the [Mapbox Flutter installation guide](https://docs.mapbox.com/flutter/maps/guides/install/) and [access-token guide](https://docs.mapbox.com/help/dive-deeper/access-tokens/).
 
-| Target | Minimum | Enable | Restrict the key to |
-| --- | --- | --- | --- |
-| Android | API 24 | Maps SDK for Android | Application ID and signing certificate SHA-1 |
-| iOS | iOS 15 | Maps SDK for iOS | Bundle identifier |
-| Web | Supported Flutter browser | Maps JavaScript API | Authorized HTTP referrers, including your development origin |
-
-The current Android application ID and iOS bundle identifier are both `com.example.greenbici`. Update their key restrictions when changing those identifiers. Desktop native Google Maps views are not supported; use an Android/iOS device or the web target.
-
-To keep the key out of shell history and source files, copy `config/maps.example.json` to `config/maps.local.json`, enter the platform key, then run:
+To keep the token out of shell history and tracked source files, copy `config/maps.example.json` to `config/maps.local.json`, enter the public token, then run:
 
 ```sh
 flutter run --dart-define-from-file=config/maps.local.json
@@ -33,25 +25,23 @@ flutter run -d chrome --web-port=8080 --dart-define-from-file=config/maps.local.
 flutter build web --dart-define-from-file=config/maps.local.json
 ```
 
-`config/*.local.json` is ignored by Git. Client Maps keys are included in the built app, so configure the platform and API restrictions above. A changed key requires a full rebuild/restart, rather than hot reload.
+`config/*.local.json` is ignored by Git. Client map tokens are included in the built app, so apply URL restrictions to production web tokens in the Mapbox dashboard. A changed token requires a full rebuild/restart rather than hot reload.
 
-The Android Gradle configuration decodes Flutter's `dart-defines` into the Maps manifest entry. iOS reads Flutter's `DART_DEFINES` build setting through `Info.plist` and initializes `GMSServices` in `AppDelegate`. Web loads the Maps JavaScript API on demand before creating the map; no manual key insertion into `web/index.html` is needed.
-
-For iOS, build on macOS with Xcode. The project already uses Swift Package Manager and selects `google_maps_flutter_ios_sdk9` to retain iOS 15 support. Run Flutter with the key before launching directly from Xcode so `ios/Flutter/Generated.xcconfig` contains the current build settings. See the [iOS Maps implementation](https://pub.dev/packages/google_maps_flutter_ios_sdk9).
+The app initializes the Mapbox SDK from the Dart define before creating the first map. No Android manifest, iOS `AppDelegate`, or `web/index.html` token entry is required. This project targets Android API 24 or newer and iOS 15 or newer; Flutter web is supported by the selected Mapbox package. Desktop targets continue to use the CST fallback map.
 
 ## Location and station data
 
-Stations requests location only when first opened. It obtains a foreground position, centers the map there, and searches within 5 km. The center-location button requests a fresh position. Denied permission, permanently blocked permission, disabled location services, timeouts, and network failures have actionable states. Returning from device settings rechecks permission without automatically prompting again.
+Stations requests location only when first opened. It obtains a foreground position and centers the map there. The center-location button requests a fresh position. Denied permission, permanently blocked permission, disabled location services, and timeouts have actionable states. Returning from device settings rechecks permission without automatically prompting again.
 
 Android declares coarse and fine location permissions; approximate location is accepted. iOS declares a when-in-use purpose string. No background location tracking or background permission is requested. Web geolocation requires HTTPS or localhost; browser site settings control previously denied permissions. See the [geolocator platform setup](https://pub.dev/packages/geolocator).
 
 The current `geolocator_apple` Swift package includes its optional Always-authorization code, although this app requests only when-in-use access. Before an App Store release, review the package's `BYPASS_PERMISSION_LOCATION_ALWAYS=1` guidance. The documented CocoaPods build hook does not apply to this SPM project; do not add an Always permission purpose string or background capability merely for this screen.
 
-Nearby station locations come from OpenStreetMap `amenity=bicycle_rental` records through the public Overpass API (`https://overpass.private.coffee/api/interpreter`). Results are sorted by straight-line distance and can be filtered by station or operator name. Coverage depends on OpenStreetMap contributors and public API availability. The location coordinates are sent to Overpass for the nearby search and to Google when displaying the map or opening directions.
+The Stations screen currently displays only the bundled CST demo stations and does not request station data from a network service. The demo markers are sorted by straight-line distance from the active map center and can be selected to open their preview details.
 
-For a production deployment, select an Overpass service appropriate to your traffic and pass `--dart-define=OVERPASS_API_URL=https://your-service.example/api/interpreter` when running or building. The repository also accepts an injected HTTPS `endpoint` for integration. A web deployment's endpoint must allow cross-origin requests. The current public default is listed in the [official OSM instance directory](https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances). Native requests identify the application as GreenBici; browsers provide their own request identity. Requests time out after 20 seconds and the screen offers retry. Live verification in the development environment encountered public-server timeouts, so successful live station retrieval and browser CORS behavior remain to be checked on the target device or deployment.
+The shared top-navigation search is an explicit-submit location search. It uses Nominatim to resolve a city, landmark, or address, then recenters Mapbox without requesting GPS permission again. Queries are cached, requests are limited to one per second, autocomplete is intentionally disabled, and OpenStreetMap attribution remains visible. The public endpoint is suitable only for moderate development usage under the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/). Production deployments should provide a policy-compliant proxy or hosted geocoder with `--dart-define=LOCATION_SEARCH_API_URL=https://your-service.example/search`.
 
-OpenStreetMap does not provide live bike/dock availability. The screen reports that availability is unavailable instead of inventing counts from the reference design. `StationRepository` can be replaced by an operator/GBFS-backed implementation when live data becomes available. `Get Directions` opens Google Maps walking directions to the selected station. Station data attribution links to [OpenStreetMap contributors](https://www.openstreetmap.org/copyright).
+`StaticStationRepository` supplies the preview markers. It can be replaced by an operator/GBFS-backed `StationRepository` when live station data becomes available. “Ride in Station” opens the Rides tab using the selected demo station; it does not launch external directions.
 
 ## Structure
 
@@ -66,7 +56,7 @@ lib/
     station_page.dart       # Responsive layout and user actions
     station_controller.dart # Location, search, selection, and loading state
     models/                 # Coordinates and bicycle station model
-    services/               # GPS, station repository, Maps configuration/loading
+    services/               # GPS, station repository, and Mapbox configuration
     widgets/                # Map, markers, details, and status messages
   theme/app_style.dart      # Shared colors and theme
 ```
@@ -81,11 +71,11 @@ flutter test
 flutter build web
 ```
 
-The tests cover shared navigation, responsive layouts, GPS permission/error handling, station response parsing, sorting/searching, retry flows, and in-flight request disposal. Web builds were checked both without a key and with a dummy build-only key to compile the enabled Maps path. These checks do not verify Google credentials or native permissions.
+The tests cover shared navigation, responsive layouts, GPS permission/error handling, station response parsing, sorting/searching, retry flows, and in-flight request disposal. Automated widget tests use the fallback map and do not contact Mapbox or request native permissions.
 
-For this implementation, static analysis, the automated tests, the release web build (including Flutter's Wasm compatibility check), and the Android ARM64 debug APK build pass. The Android APK was also assembled offline after installing CMake 3.22.1. Android/iOS hardware behavior and a map using a real Google API key still require the device checks below.
+For this implementation, static analysis, all 200 automated tests, the release web build, and the Android ARM64 debug APK build pass. The supplied token also returns the Mapbox Streets style successfully. Android/iOS hardware behavior still requires the device checks below.
 
-On a configured device/browser, also verify permission grant and denial, recovery through settings, initial centering and recentering, marker selection, search, zoom, directions, and tab switching. Test on an emulator with a supplied location or a device with location services enabled.
+On a configured device/browser, also verify permission grant and denial, recovery through settings, initial centering and recentering, demo marker selection, search, zoom, the Ride in Station action, and tab switching. Test on an emulator with a supplied location or a device with location services enabled.
 
 ## Android build troubleshooting
 

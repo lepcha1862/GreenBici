@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'signin_signup/signin_page.dart';
 import 'splash/splash_screen.dart';
+import 'station/services/mapbox_configuration.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  MapboxConfiguration.prepare();
   runApp(const MyApp(showSplash: true));
 }
 

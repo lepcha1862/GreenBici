@@ -3,14 +3,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size;
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 import '../../theme/app_style.dart';
 import '../../demo/demo_data.dart';
 import '../models/bicycle_station.dart';
 import '../models/geo_point.dart';
-import '../services/maps_configuration.dart';
+import '../services/mapbox_configuration.dart';
 import 'station_marker.dart';
 
 class StationMap extends StatefulWidget {
@@ -31,6 +31,7 @@ class StationMap extends StatefulWidget {
         'Grant location permission to show stations near you.',
     this.locationPromptActionLabel = 'Grant location access',
     this.onLocationPrompt,
+    this.centerLabel,
   });
 
   final GeoPoint location;
@@ -47,16 +48,24 @@ class StationMap extends StatefulWidget {
   final String locationPromptMessage;
   final String locationPromptActionLabel;
   final VoidCallback? onLocationPrompt;
+  final String? centerLabel;
 
   @override
   State<StationMap> createState() => _StationMapState();
 }
 
 class _StationMapState extends State<StationMap> {
-  GoogleMapController? _map;
+  final ViewportController _viewportController = ViewportController();
+  MapboxMap? _map;
+  PointAnnotationManager? _pointAnnotations;
+  Cancelable? _annotationTaps;
   late Future<void> _ready;
-  BitmapDescriptor? _pin;
-  BitmapDescriptor? _selectedPin;
+  Uint8List? _pin;
+  Uint8List? _selectedPin;
+  Timer? _mapLoadTimeout;
+  final Map<String, BicycleStation> _stationByAnnotationId = {};
+  int _annotationRevision = 0;
+  bool _liveMapFailed = false;
 
   @override
   void initState() {
@@ -65,23 +74,14 @@ class _StationMapState extends State<StationMap> {
   }
 
   Future<void> _prepare() async {
-    if (!MapsConfiguration.isSupported || !MapsConfiguration.isConfigured) {
+    if (!MapboxConfiguration.isSupported || !MapboxConfiguration.isConfigured) {
       return;
     }
-    await MapsConfiguration.prepare();
-    List<BitmapDescriptor> pins;
-    try {
-      pins = await Future.wait([
-        createStationMarker(selected: false),
-        createStationMarker(selected: true),
-      ]);
-    } catch (_) {
-      // A marker-rendering failure should not prevent the map from appearing.
-      pins = [
-        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-      ];
-    }
+    MapboxConfiguration.prepare();
+    final pins = await Future.wait([
+      createStationMarker(selected: false),
+      createStationMarker(selected: true),
+    ]);
     if (!mounted) return;
     _pin = pins[0];
     _selectedPin = pins[1];
@@ -92,56 +92,164 @@ class _StationMapState extends State<StationMap> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.cameraRevision != widget.cameraRevision ||
         oldWidget.isFallback != widget.isFallback) {
-      unawaited(
-        _move(
-          CameraUpdate.newLatLngZoom(
-            _coordinates(widget.location),
-            _locationZoom,
-          ),
-        ),
-      );
-    } else if (oldWidget.selectedStation != null &&
-        widget.selectedStation != null &&
-        oldWidget.selectedStation!.id != widget.selectedStation!.id) {
-      unawaited(
-        _move(
-          CameraUpdate.newLatLng(
-            _coordinates(widget.selectedStation!.location),
-          ),
-        ),
-      );
+      _move(widget.location, zoom: _locationZoom);
+    } else if (oldWidget.selectedStation?.id != widget.selectedStation?.id &&
+        widget.selectedStation != null) {
+      _move(widget.selectedStation!.location);
+    }
+    if (oldWidget.stations != widget.stations ||
+        oldWidget.selectedStation?.id != widget.selectedStation?.id ||
+        oldWidget.isFallback != widget.isFallback) {
+      unawaited(_syncMarkers());
     }
   }
 
-  LatLng _coordinates(GeoPoint point) =>
-      LatLng(point.latitude, point.longitude);
+  Point _coordinates(GeoPoint point) =>
+      Point(coordinates: Position(point.longitude, point.latitude));
 
   double get _locationZoom => widget.isFallback ? 17 : 15;
 
-  Future<void> _move(CameraUpdate update) async {
+  void _move(GeoPoint location, {double? zoom}) {
+    if (!mounted) return;
+    _viewportController.moveTo(
+      CameraViewportState(
+        center: _coordinates(location),
+        zoom: zoom,
+        padding: EdgeInsets.only(bottom: widget.bottomPadding, right: 8),
+      ),
+      transition: MediaQuery.disableAnimationsOf(context)
+          ? null
+          : const DefaultViewportTransition(),
+    );
+  }
+
+  Future<void> _zoomBy(double change) async {
     final map = _map;
-    if (map == null || !mounted) return;
+    if (map == null) return;
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
     try {
-      if (MediaQuery.disableAnimationsOf(context)) {
-        await map.moveCamera(update);
-      } else {
-        await map.animateCamera(update);
-      }
+      final camera = await map.getCameraState();
+      await map.easeTo(
+        CameraOptions(
+          center: camera.center,
+          zoom: (camera.zoom + change).clamp(2, 20).toDouble(),
+          bearing: camera.bearing,
+          pitch: camera.pitch,
+        ),
+        MapAnimationOptions(duration: disableAnimations ? 0 : 250),
+      );
     } catch (_) {
-      // A platform view can finish disposal while a camera command is in flight.
+      // The platform map may finish disposal while a camera command is active.
     }
+  }
+
+  Future<void> _onMapCreated(MapboxMap map) async {
+    if (!mounted) return;
+    _map = map;
+    _mapLoadTimeout?.cancel();
+    _mapLoadTimeout = Timer(
+      const Duration(seconds: 20),
+      () => _useOfflineFallback('Mapbox timed out while loading.'),
+    );
+    _move(widget.location, zoom: _locationZoom);
+
+    // Annotation managers are currently a native-only Mapbox API.
+    if (kIsWeb) return;
+    try {
+      final manager = await map.annotations.createPointAnnotationManager();
+      if (!mounted || !identical(_map, map)) return;
+      _pointAnnotations = manager;
+      await manager.setIconAllowOverlap(true);
+      _annotationTaps = manager.tapEvents(
+        onTap: (annotation) {
+          final station = _stationByAnnotationId[annotation.id];
+          if (station != null) widget.onSelected(station);
+        },
+      );
+      await _syncMarkers();
+    } catch (error) {
+      debugPrint('Mapbox station markers could not be created: $error');
+    }
+  }
+
+  Future<void> _syncMarkers() async {
+    final manager = _pointAnnotations;
+    final pin = _pin;
+    final selectedPin = _selectedPin;
+    if (manager == null || pin == null || selectedPin == null) return;
+
+    final revision = ++_annotationRevision;
+    try {
+      await manager.deleteAll();
+      if (!mounted || revision != _annotationRevision) return;
+      _stationByAnnotationId.clear();
+
+      for (final station in widget.stations) {
+        if (!mounted || revision != _annotationRevision) return;
+        final selected = station.id == widget.selectedStation?.id;
+        final annotation = await manager.create(
+          PointAnnotationOptions(
+            geometry: _coordinates(station.location),
+            image: selected ? selectedPin : pin,
+            iconAnchor: IconAnchor.BOTTOM,
+            iconSize: .34,
+            symbolSortKey: selected ? 2 : 1,
+          ),
+        );
+        _stationByAnnotationId[annotation.id] = station;
+      }
+
+      if (widget.isFallback &&
+          !widget.stations.any(
+            (station) => station.location == widget.location,
+          )) {
+        await manager.create(
+          PointAnnotationOptions(
+            geometry: _coordinates(widget.location),
+            image: selectedPin,
+            iconAnchor: IconAnchor.BOTTOM,
+            iconSize: .34,
+            symbolSortKey: 3,
+          ),
+        );
+      }
+    } catch (error) {
+      debugPrint('Mapbox station markers could not be updated: $error');
+    }
+  }
+
+  void _mapLoaded() {
+    _mapLoadTimeout?.cancel();
+    _mapLoadTimeout = null;
+  }
+
+  void _useOfflineFallback(String reason) {
+    if (!mounted || _liveMapFailed) return;
+    debugPrint('$reason Showing the CST fallback map.');
+    _mapLoadTimeout?.cancel();
+    _annotationTaps?.cancel();
+    setState(() {
+      _map = null;
+      _pointAnnotations = null;
+      _annotationTaps = null;
+      _liveMapFailed = true;
+    });
   }
 
   @override
   void dispose() {
-    // GoogleMap owns and disposes its controller with the platform view.
+    _mapLoadTimeout?.cancel();
+    _annotationTaps?.cancel();
+    _viewportController.dispose();
     _map = null;
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!MapsConfiguration.isSupported || !MapsConfiguration.isConfigured) {
+    if (!MapboxConfiguration.isSupported ||
+        !MapboxConfiguration.isConfigured ||
+        _liveMapFailed) {
       return _offlineFallbackMap();
     }
     return FutureBuilder<void>(
@@ -156,83 +264,21 @@ class _StationMapState extends State<StationMap> {
         return Stack(
           children: [
             Positioned.fill(
-              child: GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: _coordinates(widget.location),
+              child: MapWidget(
+                styleUri: MapboxStyles.MAPBOX_STREETS,
+                viewport: CameraViewportState(
+                  center: _coordinates(widget.location),
                   zoom: _locationZoom,
+                  padding: EdgeInsets.only(
+                    bottom: widget.bottomPadding,
+                    right: 8,
+                  ),
                 ),
-                onMapCreated: (controller) {
-                  if (!mounted) return;
-                  _map = controller;
-                  // Use the latest location even if GPS finished during map creation.
-                  unawaited(
-                    _move(
-                      CameraUpdate.newLatLngZoom(
-                        _coordinates(widget.location),
-                        _locationZoom,
-                      ),
-                    ),
-                  );
-                },
-                style: _mapStyle,
-                padding: EdgeInsets.only(
-                  bottom: widget.bottomPadding,
-                  right: 8,
-                ),
-                myLocationEnabled: !kIsWeb && !widget.showLocationPrompt,
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                mapToolbarEnabled: false,
-                compassEnabled: false,
-                webCameraControlEnabled: false,
-                circles: kIsWeb
-                    ? {
-                        Circle(
-                          circleId: const CircleId('location-halo'),
-                          center: _coordinates(widget.location),
-                          radius: 60,
-                          fillColor: Colors.blue.withValues(alpha: .16),
-                          strokeWidth: 0,
-                        ),
-                        Circle(
-                          circleId: const CircleId('location'),
-                          center: _coordinates(widget.location),
-                          radius: 8,
-                          fillColor: Colors.blue,
-                          strokeColor: Colors.white,
-                          strokeWidth: 3,
-                        ),
-                      }
-                    : {},
-                markers: {
-                  for (final station in widget.stations)
-                    Marker(
-                      markerId: MarkerId(station.id),
-                      position: _coordinates(station.location),
-                      icon: station.id == widget.selectedStation?.id
-                          ? _selectedPin!
-                          : _pin!,
-                      zIndexInt: station.id == widget.selectedStation?.id
-                          ? 1
-                          : 0,
-                      infoWindow: InfoWindow(title: station.name),
-                      onTap: () => widget.onSelected(station),
-                    ),
-                  if (widget.isFallback &&
-                      !widget.stations.any(
-                        (station) => station.location == widget.location,
-                      ))
-                    Marker(
-                      markerId: const MarkerId('cst-fallback'),
-                      position: _coordinates(widget.location),
-                      icon: _selectedPin!,
-                      zIndexInt: 2,
-                      infoWindow: const InfoWindow(
-                        title: 'College of Science and Technology',
-                        snippet: 'Rinchending, Phuentsholing, Bhutan',
-                      ),
-                    ),
-                },
+                viewportController: _viewportController,
+                onMapCreated: _onMapCreated,
+                onMapLoadedListener: (_) => _mapLoaded(),
+                onMapLoadErrorListener: (_) =>
+                    _useOfflineFallback('Mapbox reported a loading error.'),
               ),
             ),
             if (widget.isFallback)
@@ -303,13 +349,13 @@ class _StationMapState extends State<StationMap> {
                       IconButton(
                         tooltip: 'Zoom in',
                         color: AppStyle.green,
-                        onPressed: () => _move(CameraUpdate.zoomIn()),
+                        onPressed: () => unawaited(_zoomBy(1)),
                         icon: const Icon(Icons.add),
                       ),
                       IconButton(
                         tooltip: 'Zoom out',
                         color: AppStyle.green,
-                        onPressed: () => _move(CameraUpdate.zoomOut()),
+                        onPressed: () => unawaited(_zoomBy(-1)),
                         icon: const Icon(Icons.remove),
                       ),
                     ],
@@ -341,7 +387,11 @@ class _StationMapState extends State<StationMap> {
       locating: widget.locating,
       interactionBlocked: widget.interactionBlocked,
       loadingLiveMap: loadingLiveMap,
-      stations: widget.isFallback && widget.stations.isNotEmpty
+      center: widget.centerLabel == null ? DemoData.focus : widget.location,
+      centerLabel: widget.centerLabel,
+      stations: widget.centerLabel != null
+          ? widget.stations
+          : widget.isFallback && widget.stations.isNotEmpty
           ? widget.stations
           : DemoData.stations,
       selectedStation: widget.selectedStation,
@@ -361,6 +411,8 @@ class _CstOfflineMap extends StatelessWidget {
     required this.locating,
     required this.interactionBlocked,
     required this.loadingLiveMap,
+    required this.center,
+    required this.centerLabel,
     required this.stations,
     required this.selectedStation,
     required this.onSelected,
@@ -375,6 +427,8 @@ class _CstOfflineMap extends StatelessWidget {
   final bool locating;
   final bool interactionBlocked;
   final bool loadingLiveMap;
+  final GeoPoint center;
+  final String? centerLabel;
   final List<BicycleStation> stations;
   final BicycleStation? selectedStation;
   final ValueChanged<BicycleStation> onSelected;
@@ -404,33 +458,37 @@ class _CstOfflineMap extends StatelessWidget {
                   color: Colors.white.withValues(alpha: .92),
                   borderRadius: BorderRadius.circular(10),
                   elevation: 1,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
+                    ),
                     child: SizedBox(
                       width: 226,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'College of Science and Technology',
+                            centerLabel ?? 'College of Science and Technology',
                             maxLines: 2,
                             textAlign: TextAlign.center,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: AppStyle.ink,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          Text(
-                            'Rinchending, Phuentsholing, Bhutan',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: AppStyle.muted,
-                              fontSize: 10,
+                          if (centerLabel == null)
+                            const Text(
+                              'Rinchending, Phuentsholing, Bhutan',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppStyle.muted,
+                                fontSize: 10,
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -440,7 +498,15 @@ class _CstOfflineMap extends StatelessWidget {
             ),
             for (final station in stations)
               _stationMarker(station, width, height),
-            const Positioned(left: 14, top: 14, child: _CstFallbackBadge()),
+            Positioned(
+              left: 14,
+              top: 14,
+              child: _CstFallbackBadge(
+                label: centerLabel == null
+                    ? 'CST fallback map'
+                    : 'Searched location',
+              ),
+            ),
             if (loadingLiveMap)
               Positioned(
                 left: 14,
@@ -522,11 +588,11 @@ class _CstOfflineMap extends StatelessWidget {
     const scale = 48000.0;
     final rawLeft =
         width * .5 +
-        (station.location.longitude - DemoData.focus.longitude) * scale -
+        (station.location.longitude - center.longitude) * scale -
         20;
     final rawTop =
         height * .48 -
-        (station.location.latitude - DemoData.focus.latitude) * scale -
+        (station.location.latitude - center.latitude) * scale -
         42;
     final left = rawLeft.clamp(4.0, math.max(4.0, width - 44)).toDouble();
     final top = rawTop
@@ -558,12 +624,14 @@ class _CstOfflineMap extends StatelessWidget {
 }
 
 class _CstFallbackBadge extends StatelessWidget {
-  const _CstFallbackBadge();
+  const _CstFallbackBadge({required this.label});
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'CST fallback map',
+      label: label,
       child: Material(
         key: const ValueKey('cst-fallback-map-badge'),
         color: Colors.white.withValues(alpha: .94),
@@ -571,19 +639,23 @@ class _CstFallbackBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 150),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.school_rounded, size: 19, color: AppStyle.darkGreen),
-                SizedBox(width: 7),
+                const Icon(
+                  Icons.school_rounded,
+                  size: 19,
+                  color: AppStyle.darkGreen,
+                ),
+                const SizedBox(width: 7),
                 Flexible(
                   child: Text(
-                    'CST fallback map',
+                    label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppStyle.ink,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -785,10 +857,3 @@ class _CstMapPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _CstMapPainter oldDelegate) => false;
 }
-
-const _mapStyle = '''[
-  {"featureType":"poi","elementType":"labels","stylers":[{"visibility":"off"}]},
-  {"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#f4f6ef"}]},
-  {"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#dfeecf"}]},
-  {"featureType":"water","elementType":"geometry","stylers":[{"color":"#c7e3e7"}]}
-]''';

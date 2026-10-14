@@ -24,6 +24,7 @@ class StationController extends ChangeNotifier {
   bool loadingStations = false;
   bool stationLoadFailed = false;
   bool usingFallback = false;
+  String? searchedLocationLabel;
   List<BicycleStation> _stations = const [];
   String _query = '';
   String? _selectedId;
@@ -32,6 +33,7 @@ class StationController extends ChangeNotifier {
   int cameraRevision = 0;
 
   bool get busy => locating || loadingStations;
+  bool get usingSearchedLocation => searchedLocationLabel != null;
   String get query => _query;
   List<BicycleStation> get stations => List.unmodifiable(
     _stations.where(
@@ -82,6 +84,7 @@ class StationController extends ChangeNotifier {
       }
       location = position;
       usingFallback = false;
+      searchedLocationLabel = null;
       cameraRevision++;
       locating = false;
       await _loadStations(generation);
@@ -119,6 +122,7 @@ class StationController extends ChangeNotifier {
     location = fallbackLocation;
     _stations = [...fallbackStations];
     usingFallback = true;
+    searchedLocationLabel = null;
     this.locationFailure = locationFailure;
     stationLoadFailed = false;
     cameraRevision++;
@@ -130,6 +134,23 @@ class StationController extends ChangeNotifier {
     await _loadStations(++_generation);
   }
 
+  Future<void> centerOnSearchResult(GeoPoint point, String label) async {
+    if (_disposed || !point.isValid) return;
+    final generation = ++_generation;
+    locating = false;
+    loadingStations = false;
+    location = point;
+    locationFailure = null;
+    usingFallback = false;
+    searchedLocationLabel = label.trim().isEmpty ? 'Searched location' : label;
+    stationLoadFailed = false;
+    _query = '';
+    _selectedId = null;
+    cameraRevision++;
+    _notify();
+    await _loadStations(generation);
+  }
+
   Future<void> _loadStations(int generation) async {
     loadingStations = true;
     stationLoadFailed = false;
@@ -139,7 +160,10 @@ class StationController extends ChangeNotifier {
     try {
       final results = await repository.nearby(location!);
       if (!_isCurrent(generation)) return;
-      if (results.isEmpty && fallbackLocation != null && !usingFallback) {
+      if (results.isEmpty &&
+          fallbackLocation != null &&
+          !usingFallback &&
+          !usingSearchedLocation) {
         _applyFallback();
         return;
       }
@@ -151,7 +175,7 @@ class StationController extends ChangeNotifier {
         );
     } catch (_) {
       if (!_isCurrent(generation)) return;
-      if (fallbackLocation != null) {
+      if (fallbackLocation != null && !usingSearchedLocation) {
         _applyFallback();
       } else {
         stationLoadFailed = true;

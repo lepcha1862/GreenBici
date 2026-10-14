@@ -13,12 +13,12 @@ class StationDetails extends StatelessWidget {
     super.key,
     required this.station,
     required this.userLocation,
-    required this.onDirections,
+    required this.onRideInStation,
   });
 
   final BicycleStation station;
   final GeoPoint userLocation;
-  final VoidCallback onDirections;
+  final VoidCallback onRideInStation;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -114,9 +114,9 @@ class StationDetails extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        onPressed: onDirections,
-        icon: const Icon(Icons.directions),
-        label: const Text('Get Directions', textAlign: TextAlign.center),
+        onPressed: onRideInStation,
+        icon: const Icon(Icons.pedal_bike_rounded),
+        label: const Text('Ride in Station', textAlign: TextAlign.center),
       ),
     ],
   );

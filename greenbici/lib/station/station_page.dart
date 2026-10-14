@@ -11,8 +11,10 @@ import '../demo/demo_data.dart';
 import '../theme/app_style.dart';
 import 'models/bicycle_station.dart';
 import 'services/location_service.dart';
+import 'services/location_search_service.dart';
 import 'services/station_repository.dart';
 import 'station_controller.dart';
+import 'widgets/location_search_delegate.dart';
 import 'widgets/station_details.dart';
 import 'widgets/station_map.dart';
 import 'widgets/station_message.dart';
@@ -28,12 +30,18 @@ class StationPage extends StatefulWidget {
     super.key,
     this.controller,
     this.mapBuilder,
+    this.onRideInStation,
     this.onSearch,
+    this.searchRevision = 0,
+    this.locationSearchService,
   });
 
   final StationController? controller;
   final StationMapBuilder? mapBuilder;
+  final ValueChanged<BicycleStation>? onRideInStation;
   final VoidCallback? onSearch;
+  final int searchRevision;
+  final LocationSearchService? locationSearchService;
 
   @override
   State<StationPage> createState() => _StationPageState();
@@ -41,23 +49,40 @@ class StationPage extends StatefulWidget {
 
 class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
   late final StationController _controller;
-  OverpassStationRepository? _ownedRepository;
+  NominatimLocationSearchService? _ownedLocationSearchService;
+  late final LocationSearchService _locationSearchService;
   bool _choosingStation = false;
   bool _returningFromSettings = false;
+  bool _locationSearchOpen = false;
+  late int _handledSearchRevision;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _locationSearchService =
+        widget.locationSearchService ??
+        (_ownedLocationSearchService = NominatimLocationSearchService());
     _controller =
         widget.controller ??
         StationController(
           locationService: DeviceLocationService(),
-          repository: _ownedRepository = OverpassStationRepository(),
+          repository: const StaticStationRepository(DemoData.stations),
           fallbackLocation: DemoData.focus,
           fallbackStations: DemoData.stations,
         );
     unawaited(_controller.locate());
+    _handledSearchRevision = widget.searchRevision;
+    if (widget.searchRevision > 0) _scheduleLocationSearch();
+  }
+
+  @override
+  void didUpdateWidget(covariant StationPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.searchRevision != _handledSearchRevision) {
+      _handledSearchRevision = widget.searchRevision;
+      _scheduleLocationSearch();
+    }
   }
 
   @override
@@ -65,7 +90,9 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed &&
         TickerMode.valuesOf(context).enabled) {
       // Recheck permission after settings/foregrounding without prompting again.
-      if (_returningFromSettings || _controller.location != null) {
+      if (_returningFromSettings ||
+          (_controller.location != null &&
+              !_controller.usingSearchedLocation)) {
         _returningFromSettings = false;
         unawaited(_controller.locate(requestPermission: false));
       }
@@ -76,8 +103,39 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     if (widget.controller == null) _controller.dispose();
-    _ownedRepository?.dispose();
+    _ownedLocationSearchService?.dispose();
     super.dispose();
+  }
+
+  void _scheduleLocationSearch() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && TickerMode.valuesOf(context).enabled) {
+        unawaited(_showLocationSearch());
+      }
+    });
+  }
+
+  Future<void> _showLocationSearch() async {
+    if (_locationSearchOpen || !mounted) return;
+    _locationSearchOpen = true;
+    try {
+      final result = await showSearch<LocationSearchResult?>(
+        context: context,
+        delegate: StationLocationSearchDelegate(
+          service: _locationSearchService,
+        ),
+      );
+      if (result != null && mounted) {
+        await _controller.centerOnSearchResult(result.location, result.label);
+      }
+    } finally {
+      _locationSearchOpen = false;
+    }
+  }
+
+  void _handleSearch() {
+    widget.onSearch?.call();
+    unawaited(_showLocationSearch());
   }
 
   Future<void> _openSettings({bool location = false}) async {
@@ -127,17 +185,14 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
     }
   }
 
-  void _directions(BicycleStation station) => unawaited(
-    _openLink(
-      Uri.https('www.google.com', '/maps/dir/', {
-        'api': '1',
-        'destination': '${station.latitude},${station.longitude}',
-        'travelmode': 'walking',
-        if (_controller.location case final location?)
-          'origin': '${location.latitude},${location.longitude}',
-      }),
-    ),
-  );
+  void _rideInStation(BicycleStation station) {
+    final onRideInStation = widget.onRideInStation;
+    if (onRideInStation != null) {
+      onRideInStation(station);
+    } else {
+      _showMessage('Ride selected at ${station.name}.');
+    }
+  }
 
   @override
   Widget build(BuildContext context) => SafeArea(
@@ -161,7 +216,9 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
                     TopNav(
                       title: 'Nearby Stations',
                       subtitle: _controller.location != null
-                          ? (_controller.usingFallback
+                          ? (_controller.searchedLocationLabel != null
+                                ? 'Map center · ${_controller.searchedLocationLabel}'
+                                : _controller.usingFallback
                                 ? 'Fallback map · ${DemoData.focusLabel}'
                                 : 'Current location')
                           : _controller.locating
@@ -171,7 +228,7 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
                       statusColor: _controller.location == null
                           ? AppStyle.muted
                           : AppStyle.green,
-                      onSearch: widget.onSearch,
+                      onSearch: _handleSearch,
                     ),
                   ],
                 ),
@@ -291,6 +348,7 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
         onLocationPrompt: showLocationPrompt
             ? () => _recoverLocation(failure)
             : null,
+        centerLabel: _controller.searchedLocationLabel,
       );
       return widget.mapBuilder?.call(context, map) ?? map;
     }
@@ -400,7 +458,7 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
             StationDetails(
               station: station,
               userLocation: _controller.location!,
-              onDirections: () => _directions(station),
+              onRideInStation: () => _rideInStation(station),
             ),
           ],
         ],
@@ -412,7 +470,7 @@ class _StationPageState extends State<StationPage> with WidgetsBindingObserver {
     onPressed: () =>
         _openLink(Uri.https('www.openstreetmap.org', '/copyright')),
     child: const Text(
-      'Station data © OpenStreetMap contributors',
+      'Location search © OpenStreetMap contributors',
       textAlign: TextAlign.center,
       style: TextStyle(fontSize: 11),
     ),

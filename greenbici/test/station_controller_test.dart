@@ -148,6 +148,50 @@ void main() {
     expect(local.usingFallback, isFalse);
   });
 
+  test('a searched location replaces CST and survives empty results', () async {
+    final local = StationController(
+      locationService: location,
+      repository: repository,
+      fallbackLocation: _fallback,
+      fallbackStations: const [_fallbackStation],
+    );
+    addTearDown(local.dispose);
+    location.failure = const LocationFailure(LocationFailureKind.denied);
+    await local.locate();
+    expect(local.location, _fallback);
+
+    repository.result = () async => const [];
+    const searched = GeoPoint(latitude: 27.4287, longitude: 89.4164);
+    await local.centerOnSearchResult(searched, 'Paro, Bhutan');
+
+    expect(local.location, searched);
+    expect(local.searchedLocationLabel, 'Paro, Bhutan');
+    expect(local.usingSearchedLocation, isTrue);
+    expect(local.usingFallback, isFalse);
+    expect(local.stations, isEmpty);
+  });
+
+  test('a location search cancels an in-flight GPS center', () async {
+    final position = Completer<GeoPoint>();
+    location.result = () => position.future;
+    final local = StationController(
+      locationService: location,
+      repository: repository,
+      fallbackLocation: _fallback,
+      fallbackStations: const [_fallbackStation],
+    );
+    addTearDown(local.dispose);
+    final locate = local.locate();
+
+    const searched = GeoPoint(latitude: 27.4287, longitude: 89.4164);
+    await local.centerOnSearchResult(searched, 'Paro, Bhutan');
+    position.complete(_origin);
+    await locate;
+
+    expect(local.location, searched);
+    expect(local.searchedLocationLabel, 'Paro, Bhutan');
+  });
+
   for (final stationResult in ['empty', 'failure']) {
     test(
       '$stationResult station lookup switches to the CST fallback map',

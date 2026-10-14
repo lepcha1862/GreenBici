@@ -67,7 +67,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final search = find.byTooltip('Search stations');
+        final search = find.byTooltip('Search locations');
         expect(search, findsOneWidget);
         if (size.width <= 390) {
           final pagePadding = size.width < 360 ? 14.0 : 20.0;
@@ -97,7 +97,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byTooltip('Search stations'), findsOneWidget);
+        expect(find.byTooltip('Search locations'), findsOneWidget);
         final signOut = find.text('Sign out');
         await tester.ensureVisible(signOut);
         await tester.pumpAndSettle();

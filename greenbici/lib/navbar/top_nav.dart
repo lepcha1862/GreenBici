@@ -110,7 +110,7 @@ class TopNav extends StatelessWidget {
                   const Spacer(),
                 const SizedBox(width: 8),
                 IconButton(
-                  tooltip: 'Search stations',
+                  tooltip: 'Search locations',
                   onPressed: onSearch,
                   icon: const Icon(Icons.search_rounded, size: 31),
                 ),

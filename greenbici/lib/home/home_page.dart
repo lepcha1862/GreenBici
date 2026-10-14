@@ -18,11 +18,13 @@ class HomePage extends StatefulWidget {
     this.displayName = 'Alex',
     this.scrollToTopRevision = 0,
     required this.onNavigate,
+    this.onSearch,
   });
 
   final String displayName;
   final int scrollToTopRevision;
   final ValueChanged<int> onNavigate;
+  final VoidCallback? onSearch;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -87,7 +89,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   TopNav(
                     displayName: widget.displayName,
-                    onSearch: () => widget.onNavigate(1),
+                    onSearch: widget.onSearch ?? () => widget.onNavigate(1),
                   ),
                   _section(HeroSlider(onStartRide: _startRide)),
                   _section(

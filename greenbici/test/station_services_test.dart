@@ -3,8 +3,10 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:greenbici/station/models/bicycle_station.dart';
 import 'package:greenbici/station/models/geo_point.dart';
 import 'package:greenbici/station/services/location_service.dart';
+import 'package:greenbici/station/services/location_search_service.dart';
 import 'package:greenbici/station/services/station_repository.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -12,7 +14,78 @@ import 'package:http/testing.dart';
 void main() {
   const origin = GeoPoint(latitude: 43.238, longitude: 76.945);
 
+  group('Location search', () {
+    test('submits a text query, parses results, and caches repeats', () async {
+      var calls = 0;
+      final service = NominatimLocationSearchService(
+        minimumRequestInterval: Duration.zero,
+        client: MockClient((request) async {
+          calls++;
+          expect(request.method, 'GET');
+          expect(request.url.queryParameters['q'], 'Paro Bhutan');
+          expect(request.url.queryParameters['format'], 'jsonv2');
+          expect(request.url.queryParameters['limit'], '5');
+          expect(request.headers['User-Agent'], startsWith('GreenBici/'));
+          return http.Response(
+            jsonEncode([
+              {
+                'display_name': 'Paro, Bhutan',
+                'lat': '27.4287',
+                'lon': '89.4164',
+              },
+              {'display_name': 'Malformed', 'lat': 'north', 'lon': 'east'},
+            ]),
+            200,
+          );
+        }),
+      );
+
+      final first = await service.search('  Paro   Bhutan ');
+      final second = await service.search('paro bhutan');
+
+      expect(first, same(second));
+      expect(calls, 1);
+      expect(first.single.label, 'Paro, Bhutan');
+      expect(
+        first.single.location,
+        const GeoPoint(latitude: 27.4287, longitude: 89.4164),
+      );
+    });
+
+    test('rejects short queries and failed responses', () async {
+      final service = NominatimLocationSearchService(
+        minimumRequestInterval: Duration.zero,
+        client: MockClient((_) async => http.Response('Unavailable', 503)),
+      );
+      await expectLater(
+        service.search('x'),
+        throwsA(isA<LocationSearchException>()),
+      );
+      await expectLater(
+        service.search('Paro'),
+        throwsA(isA<LocationSearchException>()),
+      );
+    });
+  });
+
   group('Station search', () {
+    test('static repository returns bundled demo markers only', () async {
+      const markers = [
+        BicycleStation(
+          id: 'demo',
+          name: 'Demo Station',
+          latitude: 26.8502,
+          longitude: 89.394,
+        ),
+      ];
+      const repository = StaticStationRepository(markers);
+
+      final result = await repository.nearby(origin);
+
+      expect(result, markers);
+      expect(() => result.add(markers.single), throwsUnsupportedError);
+    });
+
     test(
       'queries current coordinates, parses all OSM geometries and sorts',
       () async {

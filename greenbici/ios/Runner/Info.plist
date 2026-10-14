@@ -26,8 +26,6 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>GreenBiciDartDefines</key>
-	<string>$(DART_DEFINES)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>GreenBici uses your location while you use Stations to find nearby bicycle stations and center the map.</string>
 	<key>UIApplicationSceneManifest</key>

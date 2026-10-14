@@ -6,6 +6,7 @@ import 'package:greenbici/navbar/bottom_nav.dart';
 import 'package:greenbici/station/models/bicycle_station.dart';
 import 'package:greenbici/station/models/geo_point.dart';
 import 'package:greenbici/station/services/location_service.dart';
+import 'package:greenbici/station/services/location_search_service.dart';
 import 'package:greenbici/station/services/station_repository.dart';
 import 'package:greenbici/station/station_controller.dart';
 import 'package:greenbici/station/station_page.dart';
@@ -58,6 +59,27 @@ void main() {
     expect(harness.map!.location, _userLocation);
     expect(harness.map!.cameraRevision, 1);
     expect(harness.repository.requests, [_userLocation]);
+    await _unmount(tester);
+  });
+
+  testWidgets('Ride in Station returns the selected demo station', (
+    tester,
+  ) async {
+    final harness = _Harness();
+    BicycleStation? rideStation;
+    await _pumpPage(
+      tester,
+      harness,
+      onRideInStation: (station) => rideStation = station,
+    );
+
+    final action = find.text('Ride in Station');
+    await tester.ensureVisible(action);
+    await tester.pumpAndSettle();
+    await tester.tap(action);
+
+    expect(rideStation, _centralStation);
+    expect(find.text('Get Directions'), findsNothing);
     await _unmount(tester);
   });
 
@@ -131,6 +153,43 @@ void main() {
     );
     expect(find.byKey(const ValueKey('location-permission-prompt')), findsOne);
     expect(tester.takeException(), isNull);
+    await _unmount(tester);
+  });
+
+  testWidgets('top navigation search moves the map away from CST', (
+    tester,
+  ) async {
+    const searchedLocation = GeoPoint(latitude: 27.4287, longitude: 89.4164);
+    final locationSearch = _FakeLocationSearchService(
+      results: const [
+        LocationSearchResult(label: 'Paro, Bhutan', location: searchedLocation),
+      ],
+    );
+    final harness = _Harness(
+      location: _FakeLocationService()..failure = LocationFailureKind.denied,
+      fallbackLocation: _cstLocation,
+      fallbackStations: const [_cstStation],
+      locationSearchService: locationSearch,
+    );
+    await _pumpPage(tester, harness);
+    expect(harness.map!.location, _cstLocation);
+
+    await tester.tap(find.byTooltip('Search locations'));
+    await tester.pumpAndSettle();
+    expect(find.text('Search for another location'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Paro');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+    expect(locationSearch.queries, ['Paro']);
+    await tester.tap(find.text('Paro, Bhutan'));
+    await tester.pumpAndSettle();
+
+    expect(harness.map!.location, searchedLocation);
+    expect(harness.map!.isFallback, isFalse);
+    expect(harness.map!.centerLabel, 'Paro, Bhutan');
+    expect(harness.controller.searchedLocationLabel, 'Paro, Bhutan');
+    expect(find.textContaining('Map center'), findsOneWidget);
+    expect(harness.location.permissionRequests, [true]);
     await _unmount(tester);
   });
 
@@ -261,7 +320,7 @@ void main() {
       expect(find.text(_riversideStation.name), findsOneWidget);
       expect(harness.map!.selectedStation!.id, 'riverside');
       expect(find.byType(TextField), findsNothing);
-      expect(find.byTooltip('Search stations'), findsOneWidget);
+      expect(find.byTooltip('Search locations'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await _unmount(tester);
     },
@@ -299,11 +358,11 @@ void main() {
     expect(find.text('Map unavailable'), findsNothing);
     expect(find.text(_centralStation.name), findsOneWidget);
     expect(
-      find.text('Station data © OpenStreetMap contributors').hitTestable(),
+      find.text('Location search © OpenStreetMap contributors').hitTestable(),
       findsOneWidget,
     );
-    await tester.ensureVisible(find.text('Get Directions'));
-    expect(find.text('Get Directions').hitTestable(), findsOneWidget);
+    await tester.ensureVisible(find.text('Ride in Station'));
+    expect(find.text('Ride in Station').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _unmount(tester);
   });
@@ -366,10 +425,10 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(find.byType(BottomNav).hitTestable(), findsOneWidget);
 
-        final directions = find.text('Get Directions');
-        await tester.ensureVisible(directions);
+        final rideInStation = find.text('Ride in Station');
+        await tester.ensureVisible(rideInStation);
         await tester.pumpAndSettle();
-        expect(directions.hitTestable(), findsOneWidget);
+        expect(rideInStation.hitTestable(), findsOneWidget);
         expect(
           find.text('Live availability is not provided for this station.'),
           findsOneWidget,
@@ -423,9 +482,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(harness.map!.selectedStation!.id, _riversideStation.id);
     expect(harness.map!.interactionBlocked, isFalse);
-    await tester.ensureVisible(find.text('Get Directions'));
+    await tester.ensureVisible(find.text('Ride in Station'));
     await tester.pumpAndSettle();
-    expect(find.text('Get Directions').hitTestable(), findsOneWidget);
+    expect(find.text('Ride in Station').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _unmount(tester);
   });
@@ -440,9 +499,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(harness.map!.selectedStation!.id, _riversideStation.id);
     expect(harness.location.permissionRequests, [true]);
-    await tester.ensureVisible(find.text('Get Directions'));
+    await tester.ensureVisible(find.text('Ride in Station'));
     await tester.pumpAndSettle();
-    expect(find.text('Get Directions').hitTestable(), findsOneWidget);
+    expect(find.text('Ride in Station').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _unmount(tester);
   });
@@ -464,7 +523,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      var directionRequests = 0;
+      var rideRequests = 0;
       await tester.pumpWidget(
         MaterialApp(
           theme: AppStyle.theme,
@@ -479,7 +538,7 @@ void main() {
               child: StationDetails(
                 station: longStation,
                 userLocation: _userLocation,
-                onDirections: () => directionRequests++,
+                onRideInStation: () => rideRequests++,
               ),
             ),
           ),
@@ -489,15 +548,15 @@ void main() {
       expect(find.text('128'), findsOneWidget);
       expect(find.text('0'), findsOneWidget);
       expect(find.textContaining('Live availability'), findsNothing);
-      final directions = find.ancestor(
-        of: find.text('Get Directions'),
+      final rideInStation = find.ancestor(
+        of: find.text('Ride in Station'),
         matching: find.byWidgetPredicate((widget) => widget is FilledButton),
       );
-      await tester.ensureVisible(directions);
+      await tester.ensureVisible(rideInStation);
       await tester.pumpAndSettle();
-      expect(tester.getSize(directions).height, greaterThanOrEqualTo(48));
-      await tester.tap(directions);
-      expect(directionRequests, 1);
+      expect(tester.getSize(rideInStation).height, greaterThanOrEqualTo(48));
+      await tester.tap(rideInStation);
+      expect(rideRequests, 1);
       expect(tester.takeException(), isNull);
       await _unmount(tester);
     });
@@ -508,6 +567,7 @@ class _Harness {
   _Harness({
     _FakeLocationService? location,
     _FakeStationRepository? repository,
+    this.locationSearchService,
     this.fallbackLocation,
     this.fallbackStations = const [],
   }) : location = location ?? _FakeLocationService(),
@@ -515,6 +575,7 @@ class _Harness {
 
   final _FakeLocationService location;
   final _FakeStationRepository repository;
+  final LocationSearchService? locationSearchService;
   final GeoPoint? fallbackLocation;
   final List<BicycleStation> fallbackStations;
   late final controller = StationController(
@@ -533,6 +594,7 @@ Future<void> _pumpPage(
   double textScale = 1,
   bool settle = true,
   bool useRealMap = false,
+  ValueChanged<BicycleStation>? onRideInStation,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -548,6 +610,8 @@ Future<void> _pumpPage(
       home: Scaffold(
         body: StationPage(
           controller: harness.controller,
+          onRideInStation: onRideInStation,
+          locationSearchService: harness.locationSearchService,
           mapBuilder: useRealMap
               ? null
               : (context, map) {
@@ -597,6 +661,19 @@ class _FakeLocationService implements LocationService {
   Future<bool> openLocationSettings() async {
     locationSettingsOpened++;
     return settingsAvailable;
+  }
+}
+
+class _FakeLocationSearchService implements LocationSearchService {
+  _FakeLocationSearchService({this.results = const []});
+
+  final List<LocationSearchResult> results;
+  final queries = <String>[];
+
+  @override
+  Future<List<LocationSearchResult>> search(String query) async {
+    queries.add(query);
+    return results;
   }
 }
 
