@@ -4,6 +4,7 @@ import '../navbar/top_nav.dart';
 import '../theme/app_style.dart';
 import 'data/sample_inventory.dart';
 import 'models/ride_bike.dart';
+import 'mqtt/smart_bike_lock_card.dart';
 import 'widgets/bike_card.dart';
 import 'widgets/return_note.dart';
 import 'widgets/station_summary.dart';
@@ -73,6 +74,10 @@ class RidePage extends StatelessWidget {
                               const SizedBox(height: 14),
                             ],
                             const RideReturnNote(),
+                            // MQTT smart lock control, appended to the
+                            // Unlock section without touching the layout above.
+                            const SizedBox(height: 18),
+                            const SmartBikeLockCard(),
                           ],
                         );
                         final wide =
