@@ -75,7 +75,7 @@ void main() {
 
         await tester.ensureVisible(find.text('27 min'));
         await tester.pumpAndSettle();
-        expect(find.text(r'$2.70'), findsOneWidget);
+        expect(find.text('Nu. 255'), findsOneWidget);
         expect(tester.takeException(), isNull);
         expect(find.byType(BottomNav).hitTestable(), findsOneWidget);
         await _unmount(tester);
@@ -382,6 +382,94 @@ void main() {
       await _unmount(tester);
       await tester.pump(const Duration(seconds: 12));
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Plan and subscription lists replace the page until a tab is selected',
+    (tester) async {
+      _configureView(tester, const Size(390, 844));
+      await tester.pumpWidget(_homeApp(reducedMotion: true));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nu. 499'), findsNothing);
+      await tester.ensureVisible(find.text('Manage Plan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Manage Plan'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Manage Plan'), findsOneWidget);
+      expect(find.text('Nu. 499'), findsOneWidget);
+      expect(find.text('Nu. 5,999'), findsOneWidget);
+      expect(find.text('108 Chorten Subscription'), findsOneWidget);
+      expect(find.text('Quick Actions'), findsNothing);
+      expect(find.byTooltip('Search locations'), findsOneWidget);
+      expect(find.byType(BottomNav), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Short-Term Plans'));
+      await tester.tap(find.text('Short-Term Plans'));
+      await tester.pumpAndSettle();
+      expect(find.text('GreenBici 1 Day'), findsOneWidget);
+      expect(find.text('GreenBici 7 Days'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('subscribe-1 Day')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('1 Day selected. Subscription checkout is coming soon.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byTooltip('Stations'));
+      await tester.pumpAndSettle();
+      _expectHeadingInBody(tester, 'Nearby Stations');
+      expect(find.text('Nu. 499'), findsNothing);
+
+      await tester.tap(find.byTooltip('Home'));
+      await tester.pumpAndSettle();
+      expect(find.text('Quick Actions'), findsOneWidget);
+      expect(find.text('Nu. 499'), findsNothing);
+
+      await tester.ensureVisible(find.text('Manage Plan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Manage Plan'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nu. 4,999'), findsOneWidget);
+      await tester.tap(find.byTooltip('Home'));
+      await tester.pumpAndSettle();
+      expect(find.text('Quick Actions'), findsOneWidget);
+      expect(find.text('Nu. 4,999'), findsNothing);
+
+      await tester.tap(find.byTooltip('Profile'));
+      await tester.pumpAndSettle();
+      expect(find.text('GreenBici Pro'), findsOneWidget);
+      expect(find.text('Nu. 300'), findsNothing);
+      await tester.ensureVisible(find.text('Manage Subscription'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Manage Subscription'));
+      await tester.pumpAndSettle();
+      expect(find.text('Manage Subscription'), findsOneWidget);
+      expect(find.text('Nu. 300'), findsOneWidget);
+      expect(find.text('GreenBici Pro'), findsNothing);
+      expect(find.text('My Profile'), findsOneWidget);
+      expect(find.byType(BottomNav), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Rides'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nu. 300'), findsNothing);
+
+      await tester.tap(find.byTooltip('Profile'));
+      await tester.pumpAndSettle();
+      expect(find.text('GreenBici Pro'), findsOneWidget);
+      expect(find.text('Nu. 300'), findsNothing);
+
+      await tester.ensureVisible(find.text('Manage Subscription'));
+      await tester.tap(find.text('Manage Subscription'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Profile'));
+      await tester.pumpAndSettle();
+      expect(find.text('GreenBici Pro'), findsOneWidget);
+      expect(find.text('Nu. 300'), findsNothing);
+      expect(tester.takeException(), isNull);
+      await _unmount(tester);
     },
   );
 }

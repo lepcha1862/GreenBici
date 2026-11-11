@@ -46,7 +46,7 @@ class RecentRidesSection extends StatelessWidget {
       date: 'May 13, 2025',
       time: '5:10 PM',
       duration: '21 min',
-      price: '\$2.10',
+      price: 'Nu. 199',
       color: HomeStyle.blue,
     ),
     _Ride(
@@ -55,7 +55,7 @@ class RecentRidesSection extends StatelessWidget {
       date: 'May 12, 2025',
       time: '9:05 AM',
       duration: '27 min',
-      price: '\$2.70',
+      price: 'Nu. 255',
       color: Color(0xFF76A15C),
     ),
   ];

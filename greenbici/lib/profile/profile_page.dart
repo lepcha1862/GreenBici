@@ -1,26 +1,83 @@
 import 'package:flutter/material.dart';
 
 import '../navbar/top_nav.dart';
+import '../plans/pricing_plans.dart';
 import '../theme/app_card.dart';
 import '../theme/app_style.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({
     super.key,
     this.displayName = 'Alex Morgan',
     this.profileImage,
+    this.plansDismissRevision = 0,
     this.onSearch,
   });
 
   final String displayName;
   final ImageProvider<Object>? profileImage;
+
+  /// Increments when shell navigation should leave the pricing list.
+  final int plansDismissRevision;
   final VoidCallback? onSearch;
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final _scrollController = ScrollController();
+  bool _showingPlans = false;
+  double _savedOffset = 0;
+  int _plansGeneration = 0;
+
+  @override
+  void didUpdateWidget(covariant ProfilePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.plansDismissRevision != oldWidget.plansDismissRevision &&
+        _showingPlans) {
+      _closePlans();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _openPlans() {
+    final generation = ++_plansGeneration;
+    if (_scrollController.hasClients) {
+      _savedOffset = _scrollController.offset;
+      if (_scrollController.offset != 0) _scrollController.jumpTo(0);
+    }
+    setState(() => _showingPlans = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || generation != _plansGeneration || !_showingPlans) return;
+      if (!_scrollController.hasClients) return;
+      if (_scrollController.offset != 0) _scrollController.jumpTo(0);
+    });
+  }
+
+  void _closePlans() {
+    if (!_showingPlans) return;
+    _plansGeneration++;
+    _showingPlans = false;
+    final offset = _savedOffset;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _showingPlans || !_scrollController.hasClients) return;
+      final max = _scrollController.position.maxScrollExtent;
+      _scrollController.jumpTo(offset.clamp(0, max));
+    });
+  }
 
   @override
   Widget build(BuildContext context) => SafeArea(
     bottom: false,
     child: LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
+        controller: _scrollController,
         padding: EdgeInsets.symmetric(
           horizontal: constraints.maxWidth < 360 ? 14 : 20,
         ),
@@ -30,17 +87,30 @@ class ProfilePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TopNav(title: 'My Profile', onSearch: onSearch),
-                _identity(context),
-                const SizedBox(height: 18),
-                _subscription(context),
-                const SizedBox(height: 18),
-                _account(context),
-                const SizedBox(height: 18),
-                _settings(context),
-                const SizedBox(height: 18),
-                _signOut(context),
-                const SizedBox(height: 20),
+                TopNav(title: 'My Profile', onSearch: widget.onSearch),
+                MainContentSwitch(
+                  showPlans: _showingPlans,
+                  plans: const PricingPlansBody(
+                    key: ValueKey('profile-plans'),
+                    title: 'Manage Subscription',
+                  ),
+                  child: Column(
+                    key: const ValueKey('profile-main'),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _identity(context),
+                      const SizedBox(height: 18),
+                      _subscription(context),
+                      const SizedBox(height: 18),
+                      _account(context),
+                      const SizedBox(height: 18),
+                      _settings(context),
+                      const SizedBox(height: 18),
+                      _signOut(context),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -50,27 +120,29 @@ class ProfilePage extends StatelessWidget {
   );
 
   Widget _identity(BuildContext context) {
-    final emailName = displayName.trim().toLowerCase().replaceAll(
+    final emailName = widget.displayName.trim().toLowerCase().replaceAll(
       RegExp(r'\s+'),
       '.',
     );
     return Semantics(
       container: true,
-      label: 'Profile for $displayName',
+      label: 'Profile for ${widget.displayName}',
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Semantics(
-            image: profileImage != null,
-            label: profileImage == null
+            image: widget.profileImage != null,
+            label: widget.profileImage == null
                 ? 'Profile initials $_initials'
-                : '$displayName profile image',
+                : '${widget.displayName} profile image',
             child: CircleAvatar(
               key: const ValueKey('profile-avatar'),
               radius: 32,
               backgroundColor: AppStyle.paleGreen,
-              foregroundImage: profileImage,
-              onForegroundImageError: profileImage == null ? null : (_, _) {},
+              foregroundImage: widget.profileImage,
+              onForegroundImageError: widget.profileImage == null
+                  ? null
+                  : (_, _) {},
               child: Text(
                 _initials,
                 key: const ValueKey('profile-initials'),
@@ -89,7 +161,7 @@ class ProfilePage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  displayName,
+                  widget.displayName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -204,7 +276,7 @@ class ProfilePage extends StatelessWidget {
               : CrossAxisAlignment.end,
           children: [
             const Text(
-              'Nu. 299 / month',
+              'Nu. 5999 / month',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -213,14 +285,16 @@ class ProfilePage extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             OutlinedButton(
-              onPressed: () => _message(
-                context,
-                'Subscription management is not connected yet.',
-              ),
+              onPressed: _openPlans,
               style: OutlinedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: AppStyle.darkGreen,
                 side: BorderSide.none,
+                minimumSize: const Size(48, 48),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
               child: const Text(
                 'Manage Subscription',
@@ -382,7 +456,7 @@ class ProfilePage extends StatelessWidget {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
   String get _initials {
-    final parts = displayName
+    final parts = widget.displayName
         .trim()
         .split(RegExp(r'\s+'))
         .where((part) => part.isNotEmpty)

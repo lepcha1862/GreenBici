@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../navbar/top_nav.dart';
+import '../plans/pricing_plans.dart';
 import 'widgets/about_banner.dart';
 import 'widgets/hero_slider.dart';
 import 'widgets/offers_section.dart';
@@ -17,12 +18,16 @@ class HomePage extends StatefulWidget {
     super.key,
     this.displayName = 'Alex',
     this.scrollToTopRevision = 0,
+    this.plansDismissRevision = 0,
     required this.onNavigate,
     this.onSearch,
   });
 
   final String displayName;
   final int scrollToTopRevision;
+
+  /// Increments when shell navigation should leave the pricing list.
+  final int plansDismissRevision;
   final ValueChanged<int> onNavigate;
   final VoidCallback? onSearch;
 
@@ -32,14 +37,21 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final _scrollController = ScrollController();
+  bool _showingPlans = false;
+  double _savedOffset = 0;
+  int _plansGeneration = 0;
 
   @override
   void didUpdateWidget(covariant HomePage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.scrollToTopRevision == widget.scrollToTopRevision ||
-        !_scrollController.hasClients) {
-      return;
+    final dismissPlans =
+        widget.plansDismissRevision != oldWidget.plansDismissRevision;
+    final scrollHomeToTop =
+        widget.scrollToTopRevision != oldWidget.scrollToTopRevision;
+    if (dismissPlans && _showingPlans) {
+      _closePlans(restoreOffset: !scrollHomeToTop);
     }
+    if (!scrollHomeToTop || !_scrollController.hasClients) return;
     if (MediaQuery.disableAnimationsOf(context)) {
       _scrollController.jumpTo(0);
     } else {
@@ -49,6 +61,33 @@ class _HomePageState extends State<HomePage> {
         curve: Curves.easeInOutCubic,
       );
     }
+  }
+
+  void _openPlans() {
+    final generation = ++_plansGeneration;
+    if (_scrollController.hasClients) {
+      _savedOffset = _scrollController.offset;
+      if (_scrollController.offset != 0) _scrollController.jumpTo(0);
+    }
+    setState(() => _showingPlans = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || generation != _plansGeneration || !_showingPlans) return;
+      if (!_scrollController.hasClients) return;
+      if (_scrollController.offset != 0) _scrollController.jumpTo(0);
+    });
+  }
+
+  void _closePlans({required bool restoreOffset}) {
+    if (!_showingPlans) return;
+    _plansGeneration++;
+    _showingPlans = false;
+    if (!restoreOffset) return;
+    final offset = _savedOffset;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _showingPlans || !_scrollController.hasClients) return;
+      final max = _scrollController.position.maxScrollExtent;
+      _scrollController.jumpTo(offset.clamp(0, max));
+    });
   }
 
   @override
@@ -91,46 +130,54 @@ class _HomePageState extends State<HomePage> {
                     displayName: widget.displayName,
                     onSearch: widget.onSearch ?? () => widget.onNavigate(1),
                   ),
-                  _section(HeroSlider(onStartRide: _startRide)),
-                  _section(
-                    QuickActions(
-                      onFindStation: () => widget.onNavigate(1),
-                      onStartRide: _startRide,
-                      onMyRides: () => widget.onNavigate(2),
+                  MainContentSwitch(
+                    showPlans: _showingPlans,
+                    plans: const PricingPlansBody(
+                      key: ValueKey('home-plans'),
+                      title: 'Manage Plan',
+                    ),
+                    child: Column(
+                      key: const ValueKey('home-main'),
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _section(HeroSlider(onStartRide: _startRide)),
+                        _section(
+                          QuickActions(
+                            onFindStation: () => widget.onNavigate(1),
+                            onStartRide: _startRide,
+                            onMyRides: () => widget.onNavigate(2),
+                          ),
+                        ),
+                        _section(const AboutBanner()),
+                        _section(
+                          StationsSection(
+                            onViewAll: () => widget.onNavigate(1),
+                            onStationTap: (name) => _previewMessage(
+                              '$name: live availability is not connected yet.',
+                            ),
+                          ),
+                        ),
+                        _section(PassBanner(onManagePlan: _openPlans)),
+                        _section(
+                          OffersSection(
+                            onViewAll: () => _previewMessage(
+                              'All sample offers are shown below.',
+                            ),
+                            onOfferTap: (name) =>
+                                _previewMessage('$name is a sample offer.'),
+                          ),
+                        ),
+                        _section(
+                          RecentRidesSection(
+                            onViewAll: () => widget.onNavigate(2),
+                            onRideTap: (name) =>
+                                _previewMessage('$name is a sample ride.'),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
                   ),
-                  _section(const AboutBanner()),
-                  _section(
-                    StationsSection(
-                      onViewAll: () => widget.onNavigate(1),
-                      onStationTap: (name) => _previewMessage(
-                        '$name: live availability is not connected yet.',
-                      ),
-                    ),
-                  ),
-                  _section(
-                    PassBanner(
-                      onManagePlan: () => _previewMessage(
-                        'Plan management is not connected yet.',
-                      ),
-                    ),
-                  ),
-                  _section(
-                    OffersSection(
-                      onViewAll: () =>
-                          _previewMessage('All sample offers are shown below.'),
-                      onOfferTap: (name) =>
-                          _previewMessage('$name is a sample offer.'),
-                    ),
-                  ),
-                  _section(
-                    RecentRidesSection(
-                      onViewAll: () => widget.onNavigate(2),
-                      onRideTap: (name) =>
-                          _previewMessage('$name is a sample ride.'),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
                 ],
               ),
             ),

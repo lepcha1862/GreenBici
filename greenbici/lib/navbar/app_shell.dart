@@ -31,18 +31,23 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
   int _homeScrollToTopRevision = 0;
+  int _plansDismissRevision = 0;
   int _stationSearchRevision = 0;
   bool _stationVisited = false;
   String? _rideStationName;
 
   void _selectNavigation(int index) {
     if (index == _selectedIndex) {
-      if (index == 0) setState(() => _homeScrollToTopRevision++);
+      setState(() {
+        _plansDismissRevision++;
+        if (index == 0) _homeScrollToTopRevision++;
+      });
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     setState(() {
+      _plansDismissRevision++;
       _selectedIndex = index;
       _stationVisited = _stationVisited || index == 1;
     });
@@ -52,6 +57,7 @@ class _AppShellState extends State<AppShell> {
     FocusManager.instance.primaryFocus?.unfocus();
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     setState(() {
+      _plansDismissRevision++;
       _selectedIndex = 1;
       _stationVisited = true;
       _stationSearchRevision++;
@@ -62,6 +68,7 @@ class _AppShellState extends State<AppShell> {
     FocusManager.instance.primaryFocus?.unfocus();
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     setState(() {
+      _plansDismissRevision++;
       _rideStationName = station.name;
       _selectedIndex = 2;
     });
@@ -80,6 +87,7 @@ class _AppShellState extends State<AppShell> {
             child: HomePage(
               displayName: widget.displayName,
               scrollToTopRevision: _homeScrollToTopRevision,
+              plansDismissRevision: _plansDismissRevision,
               onNavigate: _selectNavigation,
               onSearch: _searchLocations,
             ),
@@ -117,6 +125,7 @@ class _AppShellState extends State<AppShell> {
               child: ProfilePage(
                 displayName: widget.displayName,
                 profileImage: widget.profileImage,
+                plansDismissRevision: _plansDismissRevision,
                 onSearch: _searchLocations,
               ),
             ),

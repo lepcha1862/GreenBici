@@ -164,6 +164,8 @@ void main() {
 
   test('Payload parsing understands words and JSON from the ESP32', () {
     expect(parseBikeLockPayload('LOCKED'), BikeLockStatus.locked);
+    expect(parseBikeLockPayload('LOCK'), BikeLockStatus.locked);
+    expect(parseBikeLockPayload('UNLOCK'), BikeLockStatus.unlocked);
     expect(parseBikeLockPayload('unlocked'), BikeLockStatus.unlocked);
     expect(parseBikeLockPayload('1'), BikeLockStatus.locked);
     expect(parseBikeLockPayload('0'), BikeLockStatus.unlocked);

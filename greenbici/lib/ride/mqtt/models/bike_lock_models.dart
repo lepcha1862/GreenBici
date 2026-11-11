@@ -36,9 +36,9 @@ class BikeLockUpdate {
 }
 
 /// Normalises whatever the ESP32 sends on the status topic into a
-/// [BikeLockStatus]. Understands plain words (`LOCKED`, `unlocked`, `1`, `0`)
-/// as well as JSON payloads such as `{"lock":"UNLOCKED"}` or
-/// `{"status": 0}`.
+/// [BikeLockStatus]. Understands plain words (`LOCK`, `UNLOCK`, `LOCKED`,
+/// `unlocked`, `1`, `0`) as well as JSON payloads such as
+/// `{"lock":"UNLOCKED"}` or `{"status": 0}`.
 BikeLockStatus parseBikeLockPayload(String payload) {
   final text = payload.trim().toLowerCase();
   if (text.isEmpty) return BikeLockStatus.unknown;
@@ -55,10 +55,11 @@ BikeLockStatus parseBikeLockPayload(String payload) {
 
 BikeLockStatus _statusFromToken(String token) {
   final value = token.trim();
-  if (value.contains('unlocked') || value == 'open' || value == '0') {
+  // Match unlock before lock: "unlock" contains the letters "lock".
+  if (value.contains('unlock') || value == 'open' || value == '0') {
     return BikeLockStatus.unlocked;
   }
-  if (value.contains('locked') ||
+  if (value.contains('lock') ||
       value == 'close' ||
       value == 'closed' ||
       value == '1') {
